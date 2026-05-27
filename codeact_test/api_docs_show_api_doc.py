@@ -37,7 +37,7 @@ class ApiDocOutput(BaseModel):
     response_schemas: dict = Field(description="Success and failure response schemas")
 
 def show_api_doc(app_name: str, api_name: str, access_token: Optional[str] = None) -> ToolResponse:
-    """Get the full specification of a single API.
+    """Show detailed API doc.
 
     Args:
         app_name (`str`): Name of the app.

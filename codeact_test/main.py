@@ -121,30 +121,35 @@ async def run_one_case(task_id):
 
         msg = Msg(
             name="user",
-            content="""
+            content=f"""
+USER:
+**Key instructions and disclaimers**:
+
 1. The email addresses, access tokens and variables in the example above were only for demonstration. Obtain the correct information by calling relevant APIs yourself.
-2. You prefer call the `run_python_code` tool to execute code — do NOT output code as plain text in your response.
-3. Put your thoughts and plan as comments at the top of the code.
-4. Write small chunks of code and only call `run_python_code` once per step. Make sure everything is working correctly before making any irreversible change.
+2. Only generate valid code blocks, i.e., do not put them in ```...``` or add any extra formatting. Any thoughts should be put as code comments.
+3. You can use the variables from the previous code blocks in the subsequent code blocks.
+4. Write small chunks of code and only one chunk of code in every step. Make sure everything is working correctly before making any irreversible change.
 5. The provided Python environment has access to its standard library. But modules and functions that have a risk of affecting the underlying OS, file system or process are disabled.
 6. Any reference to a file system in the task instructions means the file system *app*, operable via given APIs, and not the actual file system the code is running on.
-7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for spotify.
+7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for Spotify.
 8. The provided API documentation has both the input arguments and the output JSON schemas. All calls to APIs and parsing its outputs must be as per this documentation.
 9. For APIs that return results in "pages", make sure to consider all pages.
 10. To obtain current date or time, use Python functions like `datetime.now()` or obtain it from the phone app. Do not rely on your existing knowledge of what the current date or time is.
 11. For all temporal requests, use proper time boundaries, e.g., if I ask for something that happened yesterday, make sure to consider the time between 00:00:00 and 23:59:59.
 12. Any reference to friends, family or any other person or relation refers to the people in the phone's contacts list.
-13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in APIs. Access them via the APIs.
-14. Once you have completed the task, call `call_tool("complete_task", ...)`. If the task asks for some information, return it as the answer argument, i.e. `call_tool("complete_task", answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
-15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
-16. You can also pass `status="fail"` in the `call_tool("complete_task", ...)` API if you are sure you cannot solve it and want to exit.
+13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in the "supervisor" app. Access them via the APIs provided by the supervisor app.
+14. Once you have completed the task, call `apis.supervisor.complete_task()`. If the task asks for some information, return it as the answer argument, i.e. call `apis.supervisor.complete_task(answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
+15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the Spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
+16. You can also pass `status="fail"` in the complete_task API if you are sure you cannot solve it and want to exit.
 17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
 
-for Spotify use lower case spotify; **ALWAYS** print call_tool response!
-Now, call `run_python_code` with your code to solve the actual task:
+for Spotify use lower case spotify
+Now, call `run_python_code` tool with your code to solve the actual task:
+
+{world.task.instruction}
 
 """
-            f"My name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}.\n\nTask:\n\n{world.task.instruction}",
+            f"My name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}.",
             role="user",
         )
         while True:
@@ -153,8 +158,6 @@ Now, call `run_python_code` with your code to solve the actual task:
                 print("\nTask completed!")
                 break
             # msg = Msg(name="user", content="continue", role="user")
-            # import time
-            # time.sleep(1)
             break
 
         report = world.evaluate().report()
@@ -166,6 +169,6 @@ Now, call `run_python_code` with your code to solve the actual task:
         _world_mod.world.close()
 
 async def main():
-    await run_one_case(task_id='042a9fc_1') #'042a9fc_1') #'82e2fac_1')
+    await run_one_case(task_id='82e2fac_1') #'042a9fc_1') #'82e2fac_1')
 
 asyncio.run(main())

@@ -38,7 +38,7 @@ def show_liked_songs(
     page_limit: int = 5,
     sort_by: str = "-liked_at",
 ) -> ToolResponse:
-    """Get a list of songs you have liked on Spotify.
+    """Get a list of songs you have liked.
 
     Args:
         access_token (`str`): Access token obtained from spotify app login.

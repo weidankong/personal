@@ -41,6 +41,8 @@ class ToolServer:
                     }
                     if result.metadata is not None:
                         resp["metadata"] = result.metadata
+                    if result.metadata is not None and "message" in result.metadata:
+                        resp["isError"] = True
                     return resp
                 except Exception as e:
                     print(f"---------[{tool_name}] args={body.arguments}\nError: {e}--------")

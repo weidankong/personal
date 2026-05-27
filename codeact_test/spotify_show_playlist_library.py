@@ -35,7 +35,7 @@ class PlaylistLibraryOutput(RootModel[List[Playlist]]):
     """List of playlists"""
 
 def show_playlist_library(access_token: str, query: Optional[str] = None) -> ToolResponse:
-    """Search or show a list of playlists in the user's Spotify playlist library.
+    """Search or show a list of playlists in your playlist library.
 
     Args:
         access_token (`str`): Access token obtained from spotify login.

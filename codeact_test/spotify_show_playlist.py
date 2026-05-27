@@ -49,7 +49,7 @@ def show_playlist(
     playlist_id: int,
     access_token: Optional[str] = None,
 ) -> ToolResponse:
-    """Get detailed information about a specific playlist.
+    """Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.
 
     Args:
         playlist_id (`int`): The playlist ID to retrieve.

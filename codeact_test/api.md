@@ -7,7 +7,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 1. apis.api_docs.show_api_descriptions
 
 **App:** `api_docs`
-**Description:** List all available API endpoints under a specific app.
+**Description:** Show descriptions for all APIs available for a given app.
 
 ### Input Schema
 
@@ -45,7 +45,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 2. apis.api_docs.show_app_descriptions
 
 **App:** `api_docs`
-**Description:** Show descriptions of all available apps.
+**Description:** Show descriptions for all apps available.
 
 ### Input Schema
 
@@ -75,7 +75,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 3. apis.api_docs.show_api_doc
 
 **App:** `api_docs`
-**Description:** Get the full specification (parameters, response schema, HTTP method) of a single API.
+**Description:** Show detailed API doc.
 
 ### Input Schema
 
@@ -118,7 +118,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 4. apis.supervisor.show_account_passwords
 
 **App:** `supervisor`
-**Description:** Show all app account passwords stored in the supervisor app.
+**Description:** Show your supervisor's app account passwords.
 
 ### Input Schema
 
@@ -154,7 +154,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 5. apis.spotify.login
 
 **App:** `spotify`
-**Description:** Login to a Spotify account and obtain an access token.
+**Description:** Login to your account.
 
 ### HTTP Details
 
@@ -196,7 +196,7 @@ All tools and APIs used by the AppWorld agent, including function signatures, de
 ## 6. apis.spotify.show_playlist_library
 
 **App:** `spotify`
-**Description:** Search or show a list of playlists in the user's playlist library.
+**Description:** Search or show a list of playlists in your playlist library.
 
 ### HTTP Details
 
@@ -394,7 +394,7 @@ or
 ## 10. apis.spotify.review_song
 
 **App:** `spotify`
-**Description:** Rate or review a song (create new review). Returns 409 if review already exists.
+**Description:** Rate or review a song.
 
 ### Input Schema
 
@@ -422,7 +422,7 @@ or
 ## 11. apis.spotify.update_song_review
 
 **App:** `spotify`
-**Description:** Update an existing song review. Requires `review_id` (not `song_id`).
+**Description:** Update a song review.
 
 ### Input Schema
 
@@ -450,7 +450,7 @@ or
 ## 12. apis.spotify.show_song_review
 
 **App:** `spotify`
-**Description:** Show a single song review by `review_id`.
+**Description:** Show a song review.
 
 ### Input Schema
 
@@ -474,7 +474,7 @@ or
 ## 13. apis.spotify.show_song_reviews
 
 **App:** `spotify`
-**Description:** Search or show a list of reviews for a song. Use this to find reviews by `song_id` and get `review_id` for `update_song_review`.
+**Description:** Search or show a list of reviews for a song.
 
 ### Input Schema
 
@@ -520,7 +520,7 @@ or
 ## 14. apis.spotify.delete_song_review
 
 **App:** `spotify`
-**Description:** Delete a song review by `review_id`.
+**Description:** Delete a song review.
 
 ### Input Schema
 
@@ -545,7 +545,7 @@ or
 ## 15. apis.spotify.search_songs
 
 **App:** `spotify`
-**Description:** Search for songs with a query. Does NOT require access_token.
+**Description:** Search for songs with a query.
 
 ### Input Schema
 
@@ -606,7 +606,7 @@ or
 ## 16. apis.spotify.show_playlist
 
 **App:** `spotify`
-**Description:** Get detailed information about a specific playlist. View own or public playlists.
+**Description:** Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.
 
 ### HTTP Details
 
@@ -716,7 +716,7 @@ or
 ## 19. apis.phone.login
 
 **App:** `phone`
-**Description:** Login to your phone account.
+**Description:** Login to your account.
 
 ### HTTP Details
 

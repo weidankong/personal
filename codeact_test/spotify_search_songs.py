@@ -57,7 +57,7 @@ def search_songs(
     page_limit: int = 5,
     sort_by: Optional[str] = None,
 ) -> ToolResponse:
-    """Search for songs on Spotify.
+    """Search for songs with a query.
 
     Args:
         query (`str`): The search query string. Defaults to "".

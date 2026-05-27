@@ -28,7 +28,7 @@ class SongReviewOutput(BaseModel):
     user: ReviewUser = Field(description="Reviewer information")
 
 def show_song_review(review_id: int) -> ToolResponse:
-    """Show a single song review by review_id.
+    """Show a song review.
 
     Args:
         review_id (`int`): The song review ID to retrieve.

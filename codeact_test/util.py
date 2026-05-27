@@ -15,7 +15,6 @@ def fmt(v):
 
 def convert(output: str) -> str:
     """Transform the raw output string before parsing."""
-    print(f'============{output}===============')
     if output.find("Exception:") > 0:
         m = re.search(r'(\{.*\})', output, re.DOTALL)
         if m:

@@ -24,7 +24,7 @@ def update_song_review(
     title: Optional[str] = None,
     text: Optional[str] = None,
 ) -> ToolResponse:
-    """Update an existing song review on Spotify.
+    """Update a song review.
 
     Args:
         review_id (`int`): ID of the song review to update (not song_id).

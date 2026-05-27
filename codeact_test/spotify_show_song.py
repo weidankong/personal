@@ -37,7 +37,7 @@ class SongOutput(BaseModel):
     shareable_link: str = Field(description="Shareable URL for the song")
 
 def show_song(song_id: int) -> ToolResponse:
-    """Get details of a specific song from Spotify.
+    """Get details of a specific song.
 
     Args:
         song_id (`int`): The song ID to retrieve.

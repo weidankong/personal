@@ -23,7 +23,7 @@ class AppDescriptionsOutput(BaseModel):
     apps: List[AppDescription] = Field(description="List of available apps")
 
 def show_app_descriptions() -> ToolResponse:
-    """Show descriptions of all available apps.
+    """Show descriptions for all apps available.
 
     Returns:
         `ToolResponse`:

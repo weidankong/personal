@@ -24,7 +24,7 @@ class ApiDescriptionsOutput(BaseModel):
 
 
 def show_api_descriptions(app_name: str, access_token: Optional[str] = None) -> ToolResponse:
-    """List all available API endpoints under a specific app.
+    """Show descriptions for all APIs available for a given app.
 
     Args:
         app_name (`str`): Name of the app, e.g. 'spotify', 'supervisor', 'venmo'.

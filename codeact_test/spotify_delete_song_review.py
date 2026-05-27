@@ -17,7 +17,7 @@ class DeleteSongReviewOutput(BaseModel):
     message: str = Field(description="Confirmation message")
 
 def delete_song_review(review_id: int, access_token: str) -> ToolResponse:
-    """Delete a song review by review_id.
+    """Delete a song review.
 
     Args:
         review_id (`int`): ID of the song review to delete.

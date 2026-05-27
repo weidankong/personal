@@ -24,7 +24,7 @@ def review_song(
     title: str = "",
     text: str = "",
 ) -> ToolResponse:
-    """Rate or review a song on Spotify. Creates a new review.
+    """Rate or review a song.
 
     Note: Returns 409 if a review already exists for this song.
     Use update_song_review instead in that case.

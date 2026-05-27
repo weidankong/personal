@@ -21,7 +21,7 @@ def phone_login(
     username: str,
     password: str,
 ) -> ToolResponse:
-    """Login to your phone account.
+    """Login to your account.
 
     Args:
         username (`str`): Your account phone number.

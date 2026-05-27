@@ -18,7 +18,7 @@ class SpotifyLoginOutput(BaseModel):
     token_type: str = Field(description="Token type, usually 'Bearer'")
 
 def spotify_login(username: str, password: str) -> ToolResponse:
-    """Login to a Spotify account and obtain an access token.
+    """Login to your account.
 
     Args:
         username (`str`): Your account email address.

@@ -23,7 +23,7 @@ class AccountPasswordsOutput(RootModel[List[PasswordEntry]]):
     """List of account/password pairs"""
 
 def show_account_passwords() -> ToolResponse:
-    """Show all app account passwords stored in the APIs.
+    """Show your supervisor's app account passwords.
 
     Returns:
         `ToolResponse`:
