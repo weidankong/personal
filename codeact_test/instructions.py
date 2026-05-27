@@ -1,6 +1,9 @@
 import inspect
-from typing import Type
+import re
+from typing import Type, get_type_hints
 
+from pydantic import create_model, TypeAdapter
+from pydantic.fields import FieldInfo
 from pydantic import BaseModel
 
 
@@ -16,6 +19,44 @@ Some tools may also appear directly, but prefer `run_python_code` whenever you n
 control flow with sandbox tool calls.
 """
 
+
+def _parse_docstring_param_descriptions(doc: str) -> dict[str, str]:
+    """Extract param descriptions from a Google-style docstring Args section."""
+    descriptions: dict[str, str] = {}
+    # Match lines like "    arg_name (`type`): description..."
+    pattern = re.compile(r"^\s+(\w+)\s+\(.*?\):\s+(.+)$", re.MULTILINE)
+    for m in pattern.finditer(doc):
+        descriptions[m.group(1)] = m.group(2).strip()
+    return descriptions
+
+
+def _build_input_schema_from_func(func: callable) -> dict:
+    """Build a JSON Schema for the function's input parameters."""
+    sig = inspect.signature(func)
+    type_hints = get_type_hints(func)
+    doc = inspect.getdoc(func) or ""
+    param_descs = _parse_docstring_param_descriptions(doc)
+
+    fields = {}
+    for name, param in sig.parameters.items():
+        if name == "return":
+            continue
+        hint = type_hints.get(name, None)
+        has_default = param.default is not inspect.Parameter.empty
+        default_val = param.default if has_default else ...
+        field_info = FieldInfo(
+            default=default_val,
+            description=param_descs.get(name, ""),
+        )
+        fields[name] = (hint if hint is not None else str, field_info)
+
+    input_model = create_model(f"{func.__name__}_Input", **fields)
+    schema = input_model.model_json_schema()
+    schema.pop("title", None)
+    schema.pop("$defs", None)
+    return schema
+
+
 def _resolve_refs(obj, defs):
     """Recursively resolve $ref pointers using defs dict."""
     if isinstance(obj, dict):
@@ -29,35 +70,34 @@ def _resolve_refs(obj, defs):
 
 
 def _build_registered_tools_str(
-    callable_tools: dict[str, callable],
-    output_models: dict[str, Type[BaseModel] | None],
+    callable_tools: dict,
+    output_models: dict,
 ) -> str:
     lines = []
     for name, func in callable_tools.items():
-        sig = inspect.signature(func)
-        params_str = ", ".join(
-            f"{p}: {a.annotation.__name__}"
-            if a.annotation is not inspect.Parameter.empty
-            else p
-            for p, a in sig.parameters.items()
-        )
         doc_first_line = (inspect.getdoc(func) or "").split("\n")[0]
-        entry = f"  - {name}({params_str}): {doc_first_line}"
+        entry = f"  - {name}(): {doc_first_line}\n"
 
+        # Input schema from function signature
+        input_schema = _build_input_schema_from_func(func)
+        if input_schema.get("properties"):
+            entry += f"    Input schema: {input_schema}\n"
+
+        # Output schema from registered model
         output_model = output_models.get(name)
         if output_model is not None:
             schema = output_model.model_json_schema()
             schema.pop("title", None)
             defs = schema.pop("$defs", {})
             schema = _resolve_refs(schema, defs)
-            entry += f"\n    Output schema: {schema}\n"
+            entry += f"    Output schema: {schema}\n"
         lines.append(entry)
     return "\n".join(lines)
 
 
 def build_run_python_code_description(
-    callable_tools: dict[str, callable],
-    output_models: dict[str, Type[BaseModel] | None],
+    callable_tools: dict,
+    output_models: dict,
 ) -> str:
     """Build the tool description for run_python_code."""
     registered_tools = _build_registered_tools_str(callable_tools, output_models)

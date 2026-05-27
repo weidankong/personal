@@ -43,7 +43,7 @@ class ToolServer:
                         print(f'------{result.metadata}')
                     return resp
                 except Exception as e:
-                    return {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
+                    return {"content": [{"type": "text", "text": f"[{tool_name}] args={body.arguments}\nError: {e}"}], "isError": True}
 
             return {"content": [{"type": "text", "text": f"Error: Tool '{tool_name}' not found"}], "isError": True}
 

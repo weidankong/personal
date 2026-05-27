@@ -4,7 +4,7 @@
 from typing import List, Optional
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
@@ -29,8 +29,8 @@ class Playlist(BaseModel):
     song_ids: List[int] = Field(description="List of song IDs in the playlist")
 
 
-class PlaylistLibraryOutput(BaseModel):
-    playlists: List[Playlist] = Field(description="List of playlists")
+class PlaylistLibraryOutput(RootModel[List[Playlist]]):
+    """List of playlists"""
 
 
 def _fmt(v):

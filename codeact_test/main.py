@@ -21,10 +21,23 @@ from api_docs_show_app_descriptions import show_app_descriptions, AppDescription
 from api_docs_show_api_descriptions import show_api_descriptions, ApiDescriptionsOutput
 from api_docs_show_api_doc import show_api_doc, ApiDocOutput
 from show_account_passwords import show_account_passwords, AccountPasswordsOutput
-from spotify_login import login, LoginOutput
+from spotify_login import login as spotify_login, LoginOutput as SpotifyLoginOutput
 from spotify_show_playlist_library import show_playlist_library, PlaylistLibraryOutput
 from spotify_show_song import show_song, SongOutput
+from spotify_show_liked_songs import show_liked_songs, LikedSongsOutput
+from spotify_search_songs import search_songs, SearchSongsOutput
+from spotify_show_playlist import show_playlist, PlaylistOutput
+from spotify_add_song_to_playlist import add_song_to_playlist, MessageOutput as AddSongOutput
+from spotify_remove_song_from_playlist import remove_song_from_playlist, MessageOutput as RemoveSongOutput
+from spotify_review_song import review_song, ReviewSongOutput
+from spotify_update_song_review import update_song_review, UpdateSongReviewOutput
+from spotify_show_song_review import show_song_review, SongReviewOutput
+from spotify_show_song_reviews import show_song_reviews, SongReviewsOutput
+from spotify_delete_song_review import delete_song_review, DeleteSongReviewOutput
+from phone_login import login as phone_login, LoginOutput as PhoneLoginOutput
+from phone_search_text_messages import search_text_messages, TextMessagesOutput
 from supervisor_complete_task import complete_task, CompleteTaskOutput
+from supervisor_show_profile import show_profile, SupervisorProfileOutput
 
 
 async def main():
@@ -37,16 +50,28 @@ async def main():
     # codebox.register_callable_tool(show_api_descriptions, output_model=ApiDescriptionsOutput)
     # codebox.register_callable_tool(show_api_doc, output_model=ApiDocOutput)
     codebox.register_callable_tool(show_account_passwords, output_model=AccountPasswordsOutput)
-    codebox.register_callable_tool(login, output_model=LoginOutput)
+    codebox.register_callable_tool(spotify_login, output_model=SpotifyLoginOutput)
     codebox.register_callable_tool(show_playlist_library, output_model=PlaylistLibraryOutput)
     codebox.register_callable_tool(show_song, output_model=SongOutput)
+    codebox.register_callable_tool(show_liked_songs, output_model=LikedSongsOutput)
+    codebox.register_callable_tool(search_songs, output_model=SearchSongsOutput)
+    codebox.register_callable_tool(show_playlist, output_model=PlaylistOutput)
+    codebox.register_callable_tool(add_song_to_playlist, output_model=AddSongOutput)
+    codebox.register_callable_tool(remove_song_from_playlist, output_model=RemoveSongOutput)
+    codebox.register_callable_tool(review_song, output_model=ReviewSongOutput)
+    codebox.register_callable_tool(update_song_review, output_model=UpdateSongReviewOutput)
+    codebox.register_callable_tool(show_song_review, output_model=SongReviewOutput)
+    codebox.register_callable_tool(show_song_reviews, output_model=SongReviewsOutput)
+    codebox.register_callable_tool(delete_song_review, output_model=DeleteSongReviewOutput)
+    codebox.register_callable_tool(phone_login, output_model=PhoneLoginOutput)
+    codebox.register_callable_tool(search_text_messages, output_model=TextMessagesOutput)
+    codebox.register_callable_tool(show_profile, output_model=SupervisorProfileOutput)
     codebox.register_callable_tool(complete_task, output_model=CompleteTaskOutput)
 
     # Start sandbox + tool server + inject proxies
     await codebox.start()
-    task_id = "692c77d_1" # "82e2fac_1"
+    task_id = "042a9fc_1" # 692c77d_1, 82e2fac_1, 024c982_1, 07b42fd_1, 09ac073_1
     _world_mod.world = AppWorld(task_id=task_id, experiment_name="codeact_test")
-    print("_world_mod.world")
 
     try:
         toolkit = Toolkit()
@@ -66,6 +91,12 @@ async def main():
         # toolkit.register_tool_function(login)
         # toolkit.register_tool_function(show_playlist_library)
         # toolkit.register_tool_function(show_song)
+        # toolkit.register_tool_function(show_liked_songs)
+        # toolkit.register_tool_function(review_song)
+        # toolkit.register_tool_function(update_song_review)
+        # toolkit.register_tool_function(show_song_review)
+        # toolkit.register_tool_function(show_song_reviews)
+        # toolkit.register_tool_function(delete_song_review)
         toolkit.register_tool_function(complete_task)
 
         agent = ReActAgent(
@@ -94,9 +125,9 @@ async def main():
             name="user",
             content="""
 1. The email addresses, access tokens and variables in the example above were only for demonstration. Obtain the correct information by calling relevant APIs yourself.
-2. Only generate valid code blocks, i.e., do not put them in ```...``` or add any extra formatting. Any thoughts should be put as code comments.
-3. You can use the variables from the previous code blocks in the subsequent code blocks.
-4. Write small chunks of code and only one chunk of code in every step. Make sure everything is working correctly before making any irreversible change.
+2. You prefer call the `run_python_code` tool to execute code — do NOT output code as plain text in your response.
+3. Put your thoughts and plan as comments at the top of the code.
+4. Write small chunks of code and only call `run_python_code` once per step. Make sure everything is working correctly before making any irreversible change.
 5. The provided Python environment has access to its standard library. But modules and functions that have a risk of affecting the underlying OS, file system or process are disabled.
 6. Any reference to a file system in the task instructions means the file system *app*, operable via given APIs, and not the actual file system the code is running on.
 7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for spotify.
@@ -106,13 +137,13 @@ async def main():
 11. For all temporal requests, use proper time boundaries, e.g., if I ask for something that happened yesterday, make sure to consider the time between 00:00:00 and 23:59:59.
 12. Any reference to friends, family or any other person or relation refers to the people in the phone's contacts list.
 13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in APIs. Access them via the APIs.
-14. Once you have completed the task, call `complete_task()`. If the task asks for some information, return it as the answer argument, i.e. call `complete_task(answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
+14. Once you have completed the task, call `call_tool("complete_task", ...)`. If the task asks for some information, return it as the answer argument, i.e. `call_tool("complete_task", answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
 15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
-16. You can also pass `status="fail"` in the complete_task API if you are sure you cannot solve it and want to exit.
+16. You can also pass `status="fail"` in the `call_tool("complete_task", ...)` API if you are sure you cannot solve it and want to exit.
 17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
 
 for Spotify use lower case spotify
-Using these APIs, now generate code and call run_python_code solve the actual task:
+Now, call `run_python_code` with your code to solve the actual task:
 
 """
             f"My name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}.\n\nTask:\n\n{world.task.instruction}",
@@ -124,6 +155,8 @@ Using these APIs, now generate code and call run_python_code solve the actual ta
                 print("\nTask completed!")
                 break
             msg = Msg(name="user", content="continue", role="user")
+            import time
+            time.sleep(1)
 
         report = world.evaluate().report()
         print(f"\n--- Evaluation Report ---")
