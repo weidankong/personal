@@ -42,6 +42,75 @@ from phone_get_current_date_and_time import get_current_date_and_time, DateTimeO
 from spotify_show_song_library import show_song_library, SongLibraryOutput
 from spotify_show_album_library import show_album_library, AlbumLibraryOutput
 from spotify_show_recommendations import show_recommendations, RecommendationsOutput
+from spotify_signup import signup, SignupOutput
+from spotify_logout import logout, LogoutOutput
+from spotify_show_profile import show_profile as spotify_show_profile, SpotifyProfileOutput
+from spotify_show_account import show_account, SpotifyAccountOutput
+from spotify_update_account_name import update_account_name, UpdateAccountNameOutput
+from spotify_search_users import search_users, SearchUsersOutput
+from spotify_show_genres import show_genres, GenresOutput
+from spotify_show_song_privates import show_song_privates, SongPrivatesOutput
+from spotify_like_song import like_song, LikeSongOutput
+from spotify_unlike_song import unlike_song, UnlikeSongOutput
+from spotify_search_albums import search_albums, SearchAlbumsOutput
+from spotify_show_album import show_album, AlbumOutput
+from spotify_show_album_privates import show_album_privates, AlbumPrivatesOutput
+from spotify_like_album import like_album, LikeAlbumOutput
+from spotify_unlike_album import unlike_album, UnlikeAlbumOutput
+from spotify_show_liked_albums import show_liked_albums, LikedAlbumsOutput
+from spotify_search_playlists import search_playlists, SearchPlaylistsOutput
+from spotify_show_playlist_privates import show_playlist_privates, PlaylistPrivatesOutput
+from spotify_create_playlist import create_playlist, CreatePlaylistOutput
+from spotify_update_playlist import update_playlist, UpdatePlaylistOutput
+from spotify_delete_playlist import delete_playlist, DeletePlaylistOutput
+from spotify_like_playlist import like_playlist, LikePlaylistOutput
+from spotify_unlike_playlist import unlike_playlist, UnlikePlaylistOutput
+from spotify_show_liked_playlists import show_liked_playlists, LikedPlaylistsOutput
+from spotify_show_artist import show_artist, ArtistOutput
+from spotify_show_artist_following import show_artist_following, ArtistFollowingOutput
+from spotify_add_song_to_library import add_song_to_library, AddSongToLibraryOutput
+from spotify_remove_song_from_library import remove_song_from_library, RemoveSongFromLibraryOutput
+from spotify_add_album_to_library import add_album_to_library, AddAlbumToLibraryOutput
+from spotify_remove_album_from_library import remove_album_from_library, RemoveAlbumFromLibraryOutput
+from spotify_show_downloaded_songs import show_downloaded_songs, DownloadedSongsOutput
+from spotify_download_song import download_song, DownloadSongOutput
+from spotify_remove_downloaded_song import remove_downloaded_song, RemoveDownloadedSongOutput
+from spotify_show_following_artists import show_following_artists, FollowingArtistsOutput
+from spotify_unfollow_artist import unfollow_artist, UnfollowArtistOutput
+from spotify_show_album_reviews import show_album_reviews, AlbumReviewsOutput
+from spotify_review_album import review_album, ReviewAlbumOutput
+from spotify_update_album_review import update_album_review, UpdateAlbumReviewOutput
+from spotify_delete_album_review import delete_album_review, DeleteAlbumReviewOutput
+from spotify_show_album_review import show_album_review, AlbumReviewOutput
+from spotify_show_playlist_reviews import show_playlist_reviews, PlaylistReviewsOutput
+from spotify_review_playlist import review_playlist, ReviewPlaylistOutput
+from spotify_update_playlist_review import update_playlist_review, UpdatePlaylistReviewOutput
+from spotify_delete_playlist_review import delete_playlist_review, DeletePlaylistReviewOutput
+from spotify_show_playlist_review import show_playlist_review, PlaylistReviewOutput
+from spotify_show_payment_cards import show_payment_cards, PaymentCardsOutput
+from spotify_show_payment_card import show_payment_card, PaymentCardOutput
+from spotify_add_payment_card import add_payment_card, AddPaymentCardOutput
+from spotify_update_payment_card import update_payment_card, UpdatePaymentCardOutput
+from spotify_delete_payment_card import delete_payment_card, DeletePaymentCardOutput
+from spotify_show_current_song import show_current_song, CurrentSongOutput
+from spotify_play_music import play_music, PlayMusicOutput
+from spotify_pause_music import pause_music, PauseMusicOutput
+from spotify_previous_song import previous_song, PreviousSongOutput
+from spotify_next_song import next_song, NextSongOutput
+from spotify_move_song_in_queue import move_song_in_queue, MoveSongInQueueOutput
+from spotify_seek_song import seek_song, SeekSongOutput
+from spotify_loop_song import loop_song, LoopSongOutput
+from spotify_shuffle_song_queue import shuffle_song_queue, ShuffleSongQueueOutput
+from spotify_show_song_queue import show_song_queue, SongQueueOutput
+from spotify_add_to_queue import add_to_queue, AddToQueueOutput
+from spotify_remove_song_from_queue import remove_song_from_queue, RemoveSongFromQueueOutput
+from spotify_clear_song_queue import clear_song_queue, ClearSongQueueOutput
+from spotify_show_volume import show_volume, VolumeOutput
+from spotify_set_volume import set_volume, SetVolumeOutput
+from spotify_show_premium_plans import show_premium_plans
+from spotify_subscribe_premium import subscribe_premium, SubscribePremiumOutput
+from spotify_show_premium_subscriptions import show_premium_subscriptions, PremiumSubscriptionsOutput
+from spotify_download_premium_subscription_receipt import download_premium_subscription_receipt, DownloadReceiptOutput
 from supervisor_complete_task import complete_task, CompleteTaskOutput
 from supervisor_show_profile import show_profile, SupervisorProfileOutput
 
@@ -217,6 +286,75 @@ async def run_one_case(task_id):
     codebox.register_callable_tool(show_song_library, output_model=SongLibraryOutput)
     codebox.register_callable_tool(show_album_library, output_model=AlbumLibraryOutput)
     codebox.register_callable_tool(show_recommendations, output_model=RecommendationsOutput)
+    codebox.register_callable_tool(signup, output_model=SignupOutput)
+    codebox.register_callable_tool(logout, output_model=LogoutOutput)
+    codebox.register_callable_tool(spotify_show_profile, output_model=SpotifyProfileOutput)
+    codebox.register_callable_tool(show_account, output_model=SpotifyAccountOutput)
+    codebox.register_callable_tool(update_account_name, output_model=UpdateAccountNameOutput)
+    codebox.register_callable_tool(search_users, output_model=SearchUsersOutput)
+    codebox.register_callable_tool(show_genres, output_model=GenresOutput)
+    codebox.register_callable_tool(show_song_privates, output_model=SongPrivatesOutput)
+    codebox.register_callable_tool(like_song, output_model=LikeSongOutput)
+    codebox.register_callable_tool(unlike_song, output_model=UnlikeSongOutput)
+    codebox.register_callable_tool(search_albums, output_model=SearchAlbumsOutput)
+    codebox.register_callable_tool(show_album, output_model=AlbumOutput)
+    codebox.register_callable_tool(show_album_privates, output_model=AlbumPrivatesOutput)
+    codebox.register_callable_tool(like_album, output_model=LikeAlbumOutput)
+    codebox.register_callable_tool(unlike_album, output_model=UnlikeAlbumOutput)
+    codebox.register_callable_tool(show_liked_albums, output_model=LikedAlbumsOutput)
+    codebox.register_callable_tool(search_playlists, output_model=SearchPlaylistsOutput)
+    codebox.register_callable_tool(show_playlist_privates, output_model=PlaylistPrivatesOutput)
+    codebox.register_callable_tool(create_playlist, output_model=CreatePlaylistOutput)
+    codebox.register_callable_tool(update_playlist, output_model=UpdatePlaylistOutput)
+    codebox.register_callable_tool(delete_playlist, output_model=DeletePlaylistOutput)
+    codebox.register_callable_tool(like_playlist, output_model=LikePlaylistOutput)
+    codebox.register_callable_tool(unlike_playlist, output_model=UnlikePlaylistOutput)
+    codebox.register_callable_tool(show_liked_playlists, output_model=LikedPlaylistsOutput)
+    codebox.register_callable_tool(show_artist, output_model=ArtistOutput)
+    codebox.register_callable_tool(show_artist_following, output_model=ArtistFollowingOutput)
+    codebox.register_callable_tool(add_song_to_library, output_model=AddSongToLibraryOutput)
+    codebox.register_callable_tool(remove_song_from_library, output_model=RemoveSongFromLibraryOutput)
+    codebox.register_callable_tool(add_album_to_library, output_model=AddAlbumToLibraryOutput)
+    codebox.register_callable_tool(remove_album_from_library, output_model=RemoveAlbumFromLibraryOutput)
+    codebox.register_callable_tool(show_downloaded_songs, output_model=DownloadedSongsOutput)
+    codebox.register_callable_tool(download_song, output_model=DownloadSongOutput)
+    codebox.register_callable_tool(remove_downloaded_song, output_model=RemoveDownloadedSongOutput)
+    codebox.register_callable_tool(show_following_artists, output_model=FollowingArtistsOutput)
+    codebox.register_callable_tool(unfollow_artist, output_model=UnfollowArtistOutput)
+    codebox.register_callable_tool(show_album_reviews, output_model=AlbumReviewsOutput)
+    codebox.register_callable_tool(review_album, output_model=ReviewAlbumOutput)
+    codebox.register_callable_tool(update_album_review, output_model=UpdateAlbumReviewOutput)
+    codebox.register_callable_tool(delete_album_review, output_model=DeleteAlbumReviewOutput)
+    codebox.register_callable_tool(show_album_review, output_model=AlbumReviewOutput)
+    codebox.register_callable_tool(show_playlist_reviews, output_model=PlaylistReviewsOutput)
+    codebox.register_callable_tool(review_playlist, output_model=ReviewPlaylistOutput)
+    codebox.register_callable_tool(update_playlist_review, output_model=UpdatePlaylistReviewOutput)
+    codebox.register_callable_tool(delete_playlist_review, output_model=DeletePlaylistReviewOutput)
+    codebox.register_callable_tool(show_playlist_review, output_model=PlaylistReviewOutput)
+    codebox.register_callable_tool(show_payment_cards, output_model=PaymentCardsOutput)
+    codebox.register_callable_tool(show_payment_card, output_model=PaymentCardOutput)
+    codebox.register_callable_tool(add_payment_card, output_model=AddPaymentCardOutput)
+    codebox.register_callable_tool(update_payment_card, output_model=UpdatePaymentCardOutput)
+    codebox.register_callable_tool(delete_payment_card, output_model=DeletePaymentCardOutput)
+    codebox.register_callable_tool(show_current_song, output_model=CurrentSongOutput)
+    codebox.register_callable_tool(play_music, output_model=PlayMusicOutput)
+    codebox.register_callable_tool(pause_music, output_model=PauseMusicOutput)
+    codebox.register_callable_tool(previous_song, output_model=PreviousSongOutput)
+    codebox.register_callable_tool(next_song, output_model=NextSongOutput)
+    codebox.register_callable_tool(move_song_in_queue, output_model=MoveSongInQueueOutput)
+    codebox.register_callable_tool(seek_song, output_model=SeekSongOutput)
+    codebox.register_callable_tool(loop_song, output_model=LoopSongOutput)
+    codebox.register_callable_tool(shuffle_song_queue, output_model=ShuffleSongQueueOutput)
+    codebox.register_callable_tool(show_song_queue, output_model=SongQueueOutput)
+    codebox.register_callable_tool(add_to_queue, output_model=AddToQueueOutput)
+    codebox.register_callable_tool(remove_song_from_queue, output_model=RemoveSongFromQueueOutput)
+    codebox.register_callable_tool(clear_song_queue, output_model=ClearSongQueueOutput)
+    codebox.register_callable_tool(show_volume, output_model=VolumeOutput)
+    codebox.register_callable_tool(set_volume, output_model=SetVolumeOutput)
+    codebox.register_callable_tool(show_premium_plans)
+    codebox.register_callable_tool(subscribe_premium, output_model=SubscribePremiumOutput)
+    codebox.register_callable_tool(show_premium_subscriptions, output_model=PremiumSubscriptionsOutput)
+    codebox.register_callable_tool(download_premium_subscription_receipt, output_model=DownloadReceiptOutput)
     codebox.register_callable_tool(show_profile, output_model=SupervisorProfileOutput)
     codebox.register_callable_tool(complete_task, output_model=CompleteTaskOutput)
 
