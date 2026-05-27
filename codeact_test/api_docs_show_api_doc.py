@@ -2,11 +2,14 @@
 """The show_api_doc tool — api_docs app."""
 
 from typing import List, Optional
+import json
 
 from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
+
+import world
 
 
 class ApiParameter(BaseModel):
@@ -19,7 +22,6 @@ class ApiParameter(BaseModel):
 
 
 class ResponseSchema(BaseModel):
-    # Simplified — actual schema can be nested
     schema: dict = Field(description="JSON response schema for success or failure")
 
 
@@ -31,6 +33,14 @@ class ApiDocOutput(BaseModel):
     description: str = Field(description="Full API description")
     parameters: List[ApiParameter] = Field(description="List of input parameters")
     response_schemas: dict = Field(description="Success and failure response schemas")
+
+
+def _fmt(v):
+    if v is None:
+        return "None"
+    if isinstance(v, str):
+        return repr(v)
+    return str(v)
 
 
 def show_api_doc(app_name: str, api_name: str, access_token: Optional[str] = None) -> ToolResponse:
@@ -47,5 +57,12 @@ def show_api_doc(app_name: str, api_name: str, access_token: Optional[str] = Non
             path, method, parameters, and response schemas,
             or an error message.
     """
-    # TODO: implement
-    raise NotImplementedError
+    if access_token is not None:
+        code = f"print(apis.api_docs.show_api_doc(app_name={_fmt(app_name)}, api_name={_fmt(api_name)}, access_token={_fmt(access_token)}))"
+    else:
+        code = f"print(apis.api_docs.show_api_doc(app_name={_fmt(app_name)}, api_name={_fmt(api_name)}))"
+    output = world.world.execute(code)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=json.loads(output),
+    )

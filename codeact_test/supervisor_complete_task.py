@@ -2,15 +2,26 @@
 """The complete_task tool — supervisor app."""
 
 from typing import Union
+import json
 
 from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
+import world
+
 
 class CompleteTaskOutput(BaseModel):
     message: str = Field(description="Confirmation message")
+
+
+def _fmt(v):
+    if v is None:
+        return "None"
+    if isinstance(v, str):
+        return repr(v)
+    return str(v)
 
 
 def complete_task(
@@ -30,5 +41,9 @@ def complete_task(
         `ToolResponse`:
             The tool response with a confirmation message.
     """
-    # TODO: implement
-    raise NotImplementedError
+    code = f"apis.supervisor.complete_task(answer={_fmt(answer)}, status={_fmt(status)})"
+    output = world.world.execute(code)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=json.loads(output),
+    )

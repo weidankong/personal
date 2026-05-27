@@ -2,11 +2,14 @@
 """The show_api_descriptions tool — api_docs app."""
 
 from typing import List, Optional
+import json
 
 from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
+
+import world
 
 
 class ApiDescription(BaseModel):
@@ -30,5 +33,20 @@ def show_api_descriptions(app_name: str, access_token: Optional[str] = None) -> 
             The tool response containing a list of API names and descriptions,
             or an error message.
     """
-    # TODO: implement
-    raise NotImplementedError
+    if access_token is not None:
+        code = f"print(apis.api_docs.show_api_descriptions(app_name={_fmt(app_name)}, access_token={_fmt(access_token)}))"
+    else:
+        code = f"print(apis.api_docs.show_api_descriptions(app_name={_fmt(app_name)}))"
+    output = world.world.execute(code)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=json.loads(output),
+    )
+
+
+def _fmt(v):
+    if v is None:
+        return "None"
+    if isinstance(v, str):
+        return repr(v)
+    return str(v)

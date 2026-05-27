@@ -2,11 +2,14 @@
 """The show_playlist_library tool — spotify app."""
 
 from typing import List, Optional
+import json
 
 from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
+
+import world
 
 
 class PlaylistOwner(BaseModel):
@@ -30,6 +33,14 @@ class PlaylistLibraryOutput(BaseModel):
     playlists: List[Playlist] = Field(description="List of playlists")
 
 
+def _fmt(v):
+    if v is None:
+        return "None"
+    if isinstance(v, str):
+        return repr(v)
+    return str(v)
+
+
 def show_playlist_library(access_token: str, query: Optional[str] = None) -> ToolResponse:
     """Search or show a list of playlists in the user's Spotify playlist library.
 
@@ -42,5 +53,9 @@ def show_playlist_library(access_token: str, query: Optional[str] = None) -> Too
             The tool response containing a list of playlists,
             or an error message on auth failure.
     """
-    # TODO: implement
-    raise NotImplementedError
+    code = f"print(apis.spotify.show_playlist_library(access_token={_fmt(access_token)}, query={_fmt(query)}))"
+    output = world.world.execute(code)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=json.loads(output),
+    )

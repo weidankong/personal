@@ -2,11 +2,14 @@
 """The show_song tool — spotify app."""
 
 from typing import List
+import json
 
 from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
+
+import world
 
 
 class SongArtist(BaseModel):
@@ -32,6 +35,14 @@ class SongOutput(BaseModel):
     shareable_link: str = Field(description="Shareable URL for the song")
 
 
+def _fmt(v):
+    if v is None:
+        return "None"
+    if isinstance(v, str):
+        return repr(v)
+    return str(v)
+
+
 def show_song(song_id: int) -> ToolResponse:
     """Get details of a specific song from Spotify.
 
@@ -43,5 +54,9 @@ def show_song(song_id: int) -> ToolResponse:
             The tool response containing the song details,
             or an error message if not found.
     """
-    # TODO: implement
-    raise NotImplementedError
+    code = f"print(apis.spotify.show_song(song_id={_fmt(song_id)}))"
+    output = world.world.execute(code)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=json.loads(output),
+    )

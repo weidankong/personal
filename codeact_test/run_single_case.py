@@ -9,6 +9,12 @@ from jinja2 import Template
 from openai import OpenAI
 from appworld import AppWorld, load_task_ids
 
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from world import world as _world_mod  # noqa: E402
+
 
 PROMPT_TEMPLATE = """\
 USER:
@@ -188,6 +194,7 @@ def run_single_case(task_id: str = None, experiment_name: str = "minimal_react_a
         print(f"No task_id specified, using first train task: {task_id}")
 
     world = AppWorld(task_id=task_id, experiment_name=experiment_name)
+    _world_mod.world = world  # inject into shared module for tool functions
 
     print(f"\n{'='*60}")
     print(f"Task ID: {task_id}")
