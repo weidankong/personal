@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class ApiDescription(BaseModel):
     name: str = Field(description="API name")
@@ -34,19 +36,13 @@ def show_api_descriptions(app_name: str, access_token: Optional[str] = None) -> 
             or an error message.
     """
     if access_token is not None:
-        code = f"print(apis.api_docs.show_api_descriptions(app_name={_fmt(app_name)}, access_token={_fmt(access_token)}))"
+        code = f"print(apis.api_docs.show_api_descriptions(app_name={fmt(app_name)}, access_token={fmt(access_token)}))"
     else:
-        code = f"print(apis.api_docs.show_api_descriptions(app_name={_fmt(app_name)}))"
+        code = f"print(apis.api_docs.show_api_descriptions(app_name={fmt(app_name)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),
     )
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)

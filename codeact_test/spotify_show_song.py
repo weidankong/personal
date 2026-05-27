@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class SongArtist(BaseModel):
     id: int = Field(description="Artist ID")
@@ -34,15 +36,6 @@ class SongOutput(BaseModel):
     review_count: int = Field(description="Number of reviews")
     shareable_link: str = Field(description="Shareable URL for the song")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
 def show_song(song_id: int) -> ToolResponse:
     """Get details of a specific song from Spotify.
 
@@ -54,8 +47,9 @@ def show_song(song_id: int) -> ToolResponse:
             The tool response containing the song details,
             or an error message if not found.
     """
-    code = f"print(apis.spotify.show_song(song_id={_fmt(song_id)}))"
+    code = f"print(apis.spotify.show_song(song_id={fmt(song_id)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

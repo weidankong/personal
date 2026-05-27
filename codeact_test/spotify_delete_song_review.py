@@ -10,18 +10,11 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class DeleteSongReviewOutput(BaseModel):
     message: str = Field(description="Confirmation message")
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
 
 def delete_song_review(review_id: int, access_token: str) -> ToolResponse:
     """Delete a song review by review_id.
@@ -37,10 +30,11 @@ def delete_song_review(review_id: int, access_token: str) -> ToolResponse:
     """
     code = (
         f"print(apis.spotify.delete_song_review("
-        f"review_id={_fmt(review_id)}, "
-        f"access_token={_fmt(access_token)}))"
+        f"review_id={fmt(review_id)}, "
+        f"access_token={fmt(access_token)}))"
     )
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

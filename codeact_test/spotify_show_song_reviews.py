@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class ReviewUser(BaseModel):
     name: str = Field(description="Reviewer name")
@@ -29,15 +31,6 @@ class SongReviewEntry(BaseModel):
 
 class SongReviewsOutput(RootModel[List[SongReviewEntry]]):
     """List of reviews for the song"""
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
 
 def show_song_reviews(
     song_id: int,
@@ -70,22 +63,23 @@ def show_song_reviews(
     """
     code = (
         f"print(apis.spotify.show_song_reviews("
-        f"song_id={_fmt(song_id)}"
+        f"song_id={fmt(song_id)}"
     )
     if query is not None:
-        code += f", query={_fmt(query)}"
+        code += f", query={fmt(query)}"
     if user_email is not None:
-        code += f", user_email={_fmt(user_email)}"
+        code += f", user_email={fmt(user_email)}"
     if min_rating is not None:
-        code += f", min_rating={_fmt(min_rating)}"
+        code += f", min_rating={fmt(min_rating)}"
     if max_rating is not None:
-        code += f", max_rating={_fmt(max_rating)}"
-    code += f", page_index={_fmt(page_index)}, page_limit={_fmt(page_limit)}"
+        code += f", max_rating={fmt(max_rating)}"
+    code += f", page_index={fmt(page_index)}, page_limit={fmt(page_limit)}"
     if sort_by is not None:
-        code += f", sort_by={_fmt(sort_by)}"
+        code += f", sort_by={fmt(sort_by)}"
     code += "))"
 
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

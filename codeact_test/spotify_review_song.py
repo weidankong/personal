@@ -10,19 +10,12 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class ReviewSongOutput(BaseModel):
     message: str = Field(description="Confirmation message")
     song_review_id: int = Field(description="ID of the newly created review")
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
 
 def review_song(
     song_id: int,
@@ -50,13 +43,14 @@ def review_song(
     """
     code = (
         f"print(apis.spotify.review_song("
-        f"song_id={_fmt(song_id)}, "
-        f"rating={_fmt(rating)}, "
-        f"access_token={_fmt(access_token)}, "
-        f"title={_fmt(title)}, "
-        f"text={_fmt(text)}))"
+        f"song_id={fmt(song_id)}, "
+        f"rating={fmt(rating)}, "
+        f"access_token={fmt(access_token)}, "
+        f"title={fmt(title)}, "
+        f"text={fmt(text)}))"
     )
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

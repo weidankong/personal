@@ -4,12 +4,14 @@
 from typing import List, Optional
 import json
 
-from pydantic import BaseModel, Field, RootModel, ValidationError
+from pydantic import BaseModel, Field, RootModel
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
+
+from util import fmt, convert
 
 
 class LikedSongArtist(BaseModel):
@@ -29,28 +31,6 @@ class LikedSong(BaseModel):
 
 class LikedSongsOutput(RootModel[List[LikedSong]]):
     """List of liked songs"""
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    """Parse JSON output and validate against the model. Raises on failure."""
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
 
 def show_liked_songs(
     access_token: str,
@@ -74,10 +54,15 @@ def show_liked_songs(
     """
     code = (
         f"print(apis.spotify.show_liked_songs("
-        f"access_token={_fmt(access_token)}, "
-        f"page_index={_fmt(page_index)}, "
-        f"page_limit={_fmt(page_limit)}, "
-        f"sort_by={_fmt(sort_by)}))"
+        f"access_token={fmt(access_token)}, "
+        f"page_index={fmt(page_index)}, "
+        f"page_limit={fmt(page_limit)}, "
+        f"sort_by={fmt(sort_by)}))"
     )
     output = world.world.execute(code)
-    return _validate_output(output, LikedSongsOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

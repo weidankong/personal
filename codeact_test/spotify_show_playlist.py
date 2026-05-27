@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class PlaylistSongArtist(BaseModel):
     id: int = Field(description="Artist ID")
@@ -43,15 +45,6 @@ class PlaylistOutput(BaseModel):
     shareable_link: str = Field(description="Shareable URL for the playlist")
     songs: List[PlaylistSong] = Field(description="List of songs in the playlist")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
 def show_playlist(
     playlist_id: int,
     access_token: Optional[str] = None,
@@ -66,8 +59,9 @@ def show_playlist(
     Returns:
         `ToolResponse`: The tool response containing the playlist details, or an error message.
     """
-    code = f"print(apis.spotify.show_playlist(playlist_id={_fmt(playlist_id)}, access_token={_fmt(access_token)}))"
+    code = f"print(apis.spotify.show_playlist(playlist_id={fmt(playlist_id)}, access_token={fmt(access_token)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

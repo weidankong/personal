@@ -4,12 +4,14 @@
 from typing import List, Optional
 import json
 
-from pydantic import BaseModel, Field, RootModel, ValidationError
+from pydantic import BaseModel, Field, RootModel
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
+
+from util import fmt, convert
 
 
 class SearchSongArtist(BaseModel):
@@ -35,28 +37,6 @@ class SearchSong(BaseModel):
 
 class SearchSongsOutput(RootModel[List[SearchSong]]):
     """List of songs matching the search query"""
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    """Parse JSON output and validate against the model. Raises on failure."""
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
 
 def search_songs(
     query: str = "",
@@ -104,23 +84,28 @@ def search_songs(
     """
     code = (
         f"print(apis.spotify.search_songs("
-        f"query={_fmt(query)}, "
-        f"artist_id={_fmt(artist_id)}, "
-        f"album_id={_fmt(album_id)}, "
-        f"genre={_fmt(genre)}, "
-        f"min_release_date={_fmt(min_release_date)}, "
-        f"max_release_date={_fmt(max_release_date)}, "
-        f"min_duration={_fmt(min_duration)}, "
-        f"max_duration={_fmt(max_duration)}, "
-        f"min_rating={_fmt(min_rating)}, "
-        f"max_rating={_fmt(max_rating)}, "
-        f"min_like_count={_fmt(min_like_count)}, "
-        f"max_like_count={_fmt(max_like_count)}, "
-        f"min_play_count={_fmt(min_play_count)}, "
-        f"max_play_count={_fmt(max_play_count)}, "
-        f"page_index={_fmt(page_index)}, "
-        f"page_limit={_fmt(page_limit)}, "
-        f"sort_by={_fmt(sort_by)}))"
+        f"query={fmt(query)}, "
+        f"artist_id={fmt(artist_id)}, "
+        f"album_id={fmt(album_id)}, "
+        f"genre={fmt(genre)}, "
+        f"min_release_date={fmt(min_release_date)}, "
+        f"max_release_date={fmt(max_release_date)}, "
+        f"min_duration={fmt(min_duration)}, "
+        f"max_duration={fmt(max_duration)}, "
+        f"min_rating={fmt(min_rating)}, "
+        f"max_rating={fmt(max_rating)}, "
+        f"min_like_count={fmt(min_like_count)}, "
+        f"max_like_count={fmt(max_like_count)}, "
+        f"min_play_count={fmt(min_play_count)}, "
+        f"max_play_count={fmt(max_play_count)}, "
+        f"page_index={fmt(page_index)}, "
+        f"page_limit={fmt(page_limit)}, "
+        f"sort_by={fmt(sort_by)}))"
     )
     output = world.world.execute(code)
-    return _validate_output(output, SearchSongsOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

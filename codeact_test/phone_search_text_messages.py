@@ -4,12 +4,14 @@
 from typing import List, Optional
 import json
 
-from pydantic import BaseModel, Field, RootModel, ValidationError
+from pydantic import BaseModel, Field, RootModel
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
+
+from util import fmt, convert
 
 
 class MessageContact(BaseModel):
@@ -28,28 +30,6 @@ class TextMessage(BaseModel):
 
 class TextMessagesOutput(RootModel[List[TextMessage]]):
     """List of text messages"""
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    """Parse JSON output and validate against the model. Raises on failure."""
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
 
 def search_text_messages(
     access_token: str,
@@ -77,13 +57,18 @@ def search_text_messages(
     """
     code = (
         f"print(apis.phone.search_text_messages("
-        f"access_token={_fmt(access_token)}, "
-        f"query={_fmt(query)}, "
-        f"phone_number={_fmt(phone_number)}, "
-        f"only_latest_per_contact={_fmt(only_latest_per_contact)}, "
-        f"page_index={_fmt(page_index)}, "
-        f"page_limit={_fmt(page_limit)}, "
-        f"sort_by={_fmt(sort_by)}))"
+        f"access_token={fmt(access_token)}, "
+        f"query={fmt(query)}, "
+        f"phone_number={fmt(phone_number)}, "
+        f"only_latest_per_contact={fmt(only_latest_per_contact)}, "
+        f"page_index={fmt(page_index)}, "
+        f"page_limit={fmt(page_limit)}, "
+        f"sort_by={fmt(sort_by)}))"
     )
     output = world.world.execute(code)
-    return _validate_output(output, TextMessagesOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

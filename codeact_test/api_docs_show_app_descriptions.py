@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class AppDescription(BaseModel):
     name: str = Field(description="App name")
@@ -19,7 +21,6 @@ class AppDescription(BaseModel):
 
 class AppDescriptionsOutput(BaseModel):
     apps: List[AppDescription] = Field(description="List of available apps")
-
 
 def show_app_descriptions() -> ToolResponse:
     """Show descriptions of all available apps.
@@ -31,6 +32,7 @@ def show_app_descriptions() -> ToolResponse:
     """
     code = "print(apis.api_docs.show_app_descriptions())"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

@@ -3,12 +3,14 @@
 
 import json
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
+
+from util import fmt, convert
 
 
 class SupervisorProfileOutput(BaseModel):
@@ -19,27 +21,6 @@ class SupervisorProfileOutput(BaseModel):
     birthday: str = Field(description="Supervisor's birthday")
     sex: str = Field(description="Supervisor's sex")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
-
 def show_profile() -> ToolResponse:
     """Show your supervisor's profile information.
 
@@ -48,4 +29,9 @@ def show_profile() -> ToolResponse:
     """
     code = "print(apis.supervisor.show_profile())"
     output = world.world.execute(code)
-    return _validate_output(output, SupervisorProfileOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

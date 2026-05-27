@@ -82,6 +82,8 @@ def _build_registered_tools_str(
         input_schema = _build_input_schema_from_func(func)
         if input_schema.get("properties"):
             entry += f"    Input schema: {input_schema}\n"
+        else:
+            entry += "    Input schema: no input parameters\n"
 
         # Output schema from registered model
         output_model = output_models.get(name)

@@ -10,21 +10,14 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
 
-class LoginOutput(BaseModel):
+
+class SpotifyLoginOutput(BaseModel):
     access_token: str = Field(description="Bearer access token for subsequent API calls")
     token_type: str = Field(description="Token type, usually 'Bearer'")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def login(username: str, password: str) -> ToolResponse:
+def spotify_login(username: str, password: str) -> ToolResponse:
     """Login to a Spotify account and obtain an access token.
 
     Args:
@@ -36,8 +29,9 @@ def login(username: str, password: str) -> ToolResponse:
             The tool response containing the access token,
             or an error message on invalid credentials.
     """
-    code = f"print(apis.spotify.login(username={_fmt(username)}, password={_fmt(password)}))"
+    code = f"print(apis.spotify.login(username={fmt(username)}, password={fmt(password)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class PlaylistOwner(BaseModel):
     name: str = Field(description="Owner's full name")
@@ -32,15 +34,6 @@ class Playlist(BaseModel):
 class PlaylistLibraryOutput(RootModel[List[Playlist]]):
     """List of playlists"""
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
 def show_playlist_library(access_token: str, query: Optional[str] = None) -> ToolResponse:
     """Search or show a list of playlists in the user's Spotify playlist library.
 
@@ -53,8 +46,9 @@ def show_playlist_library(access_token: str, query: Optional[str] = None) -> Too
             The tool response containing a list of playlists,
             or an error message on auth failure.
     """
-    code = f"print(apis.spotify.show_playlist_library(access_token={_fmt(access_token)}, query={_fmt(query)}))"
+    code = f"print(apis.spotify.show_playlist_library(access_token={fmt(access_token)}, query={fmt(query)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

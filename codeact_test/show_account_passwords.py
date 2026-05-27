@@ -11,6 +11,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class PasswordEntry(BaseModel):
     account_name: str = Field(description="The app name of the account")
@@ -19,7 +21,6 @@ class PasswordEntry(BaseModel):
 
 class AccountPasswordsOutput(RootModel[List[PasswordEntry]]):
     """List of account/password pairs"""
-
 
 def show_account_passwords() -> ToolResponse:
     """Show all app account passwords stored in the APIs.
@@ -31,6 +32,7 @@ def show_account_passwords() -> ToolResponse:
     """
     code = "print(apis.supervisor.show_account_passwords())"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output)

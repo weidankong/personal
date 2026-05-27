@@ -3,37 +3,18 @@
 
 import json
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class MessageOutput(BaseModel):
     message: str = Field(description="Confirmation message")
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
 
 def remove_song_from_playlist(
     playlist_id: int,
@@ -52,9 +33,14 @@ def remove_song_from_playlist(
     """
     code = (
         f"print(apis.spotify.remove_song_from_playlist("
-        f"playlist_id={_fmt(playlist_id)}, "
-        f"song_id={_fmt(song_id)}, "
-        f"access_token={_fmt(access_token)}))"
+        f"playlist_id={fmt(playlist_id)}, "
+        f"song_id={fmt(song_id)}, "
+        f"access_token={fmt(access_token)}))"
     )
     output = world.world.execute(code)
-    return _validate_output(output, MessageOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

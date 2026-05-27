@@ -21,7 +21,7 @@ from api_docs_show_app_descriptions import show_app_descriptions, AppDescription
 from api_docs_show_api_descriptions import show_api_descriptions, ApiDescriptionsOutput
 from api_docs_show_api_doc import show_api_doc, ApiDocOutput
 from show_account_passwords import show_account_passwords, AccountPasswordsOutput
-from spotify_login import login as spotify_login, LoginOutput as SpotifyLoginOutput
+from spotify_login import spotify_login, SpotifyLoginOutput
 from spotify_show_playlist_library import show_playlist_library, PlaylistLibraryOutput
 from spotify_show_song import show_song, SongOutput
 from spotify_show_liked_songs import show_liked_songs, LikedSongsOutput
@@ -34,13 +34,12 @@ from spotify_update_song_review import update_song_review, UpdateSongReviewOutpu
 from spotify_show_song_review import show_song_review, SongReviewOutput
 from spotify_show_song_reviews import show_song_reviews, SongReviewsOutput
 from spotify_delete_song_review import delete_song_review, DeleteSongReviewOutput
-from phone_login import login as phone_login, LoginOutput as PhoneLoginOutput
+from phone_login import phone_login, PhoneLoginOutput
 from phone_search_text_messages import search_text_messages, TextMessagesOutput
 from supervisor_complete_task import complete_task, CompleteTaskOutput
 from supervisor_show_profile import show_profile, SupervisorProfileOutput
 
-
-async def main():
+async def run_one_case(task_id):
     # Create and inject the AppWorld instance
 
     codebox = CodeActEnv()
@@ -70,7 +69,6 @@ async def main():
 
     # Start sandbox + tool server + inject proxies
     await codebox.start()
-    task_id = "042a9fc_1" # 692c77d_1, 82e2fac_1, 024c982_1, 07b42fd_1, 09ac073_1
     _world_mod.world = AppWorld(task_id=task_id, experiment_name="codeact_test")
 
     try:
@@ -117,7 +115,7 @@ async def main():
         print(f"\n{'='*60}")
         print(f"Task ID: {task_id}")
         sup = world.task.supervisor
-        print(f"Supervisor: {sup['first_name']} {sup['last_name']}")
+        print(f"Supervisor: {sup}")
         print(f"Instruction: {world.task.instruction}")
         print(f"{'='*60}\n")
 
@@ -142,7 +140,7 @@ async def main():
 16. You can also pass `status="fail"` in the `call_tool("complete_task", ...)` API if you are sure you cannot solve it and want to exit.
 17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
 
-for Spotify use lower case spotify
+for Spotify use lower case spotify; **ALWAYS** print call_tool response!
 Now, call `run_python_code` with your code to solve the actual task:
 
 """
@@ -154,9 +152,10 @@ Now, call `run_python_code` with your code to solve the actual task:
             if world.task_completed():
                 print("\nTask completed!")
                 break
-            msg = Msg(name="user", content="continue", role="user")
-            import time
-            time.sleep(1)
+            # msg = Msg(name="user", content="continue", role="user")
+            # import time
+            # time.sleep(1)
+            break
 
         report = world.evaluate().report()
         print(f"\n--- Evaluation Report ---")
@@ -166,5 +165,7 @@ Now, call `run_python_code` with your code to solve the actual task:
         await codebox.stop()
         _world_mod.world.close()
 
+async def main():
+    await run_one_case(task_id='042a9fc_1') #'042a9fc_1') #'82e2fac_1')
 
 asyncio.run(main())

@@ -11,18 +11,11 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class CompleteTaskOutput(BaseModel):
     message: str = Field(description="Confirmation message")
-
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
 
 def complete_task(
     answer: Union[str, int, float, None] = None,
@@ -41,8 +34,9 @@ def complete_task(
         `ToolResponse`:
             The tool response with a confirmation message.
     """
-    code = f"apis.supervisor.complete_task(answer={_fmt(answer)}, status={_fmt(status)})"
+    code = f"apis.supervisor.complete_task(answer={fmt(answer)}, status={fmt(status)})"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

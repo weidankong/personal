@@ -3,40 +3,21 @@
 
 import json
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
 
-class LoginOutput(BaseModel):
+
+class PhoneLoginOutput(BaseModel):
     access_token: str = Field(description="JWT access token for authentication")
     token_type: str = Field(description="Token type, typically 'Bearer'")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
-def _validate_output(output: str, model: type[BaseModel]) -> ToolResponse:
-    try:
-        data = json.loads(output)
-        model.model_validate(data)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=output)],
-            metadata=data,
-        )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"Output validation failed: {e}\nRaw output: {output}") from e
-
-
-def login(
+def phone_login(
     username: str,
     password: str,
 ) -> ToolResponse:
@@ -49,6 +30,11 @@ def login(
     Returns:
         `ToolResponse`: The tool response containing access_token, or an error message.
     """
-    code = f"print(apis.phone.login(username={_fmt(username)}, password={_fmt(password)}))"
+    code = f"print(apis.phone.login(username={fmt(username)}, password={fmt(password)}))"
     output = world.world.execute(code)
-    return _validate_output(output, LoginOutput)
+    output = convert(output)
+    data = json.loads(output)
+    return ToolResponse(
+        content=[TextBlock(type="text", text=output)],
+        metadata=data,
+    )

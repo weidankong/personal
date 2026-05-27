@@ -31,6 +31,7 @@ class ToolServer:
             if tool_name in self._toolname_func:
                 try:
                     result = self._toolname_func[tool_name](**body.arguments)
+                    print(result)
                     resp = {
                         "content": [
                             {"type": b.type, "text": b.text}
@@ -40,11 +41,11 @@ class ToolServer:
                     }
                     if result.metadata is not None:
                         resp["metadata"] = result.metadata
-                        print(f'------{result.metadata}')
                     return resp
                 except Exception as e:
+                    print(f"---------[{tool_name}] args={body.arguments}\nError: {e}--------")
                     return {"content": [{"type": "text", "text": f"[{tool_name}] args={body.arguments}\nError: {e}"}], "isError": True}
-
+            print(f'------{tool_name} NOT FOUND')
             return {"content": [{"type": "text", "text": f"Error: Tool '{tool_name}' not found"}], "isError": True}
 
     def register(self, func: callable):

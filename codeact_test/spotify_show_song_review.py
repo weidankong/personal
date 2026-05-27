@@ -10,6 +10,8 @@ from agentscope.message import TextBlock
 
 import world
 
+from util import fmt, convert
+
 
 class ReviewUser(BaseModel):
     name: str = Field(description="Reviewer name")
@@ -25,15 +27,6 @@ class SongReviewOutput(BaseModel):
     created_at: str = Field(description="ISO format timestamp")
     user: ReviewUser = Field(description="Reviewer information")
 
-
-def _fmt(v):
-    if v is None:
-        return "None"
-    if isinstance(v, str):
-        return repr(v)
-    return str(v)
-
-
 def show_song_review(review_id: int) -> ToolResponse:
     """Show a single song review by review_id.
 
@@ -45,8 +38,9 @@ def show_song_review(review_id: int) -> ToolResponse:
             The tool response containing the review details,
             or an error message if not found.
     """
-    code = f"print(apis.spotify.show_song_review(review_id={_fmt(review_id)}))"
+    code = f"print(apis.spotify.show_song_review(review_id={fmt(review_id)}))"
     output = world.world.execute(code)
+    output = convert(output)
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),
