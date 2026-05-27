@@ -16,108 +16,109 @@ from agentscope.message import Msg
 from codeact_env import CodeActEnv
 from instructions import CODEACT_SYSTEM_PROMPT
 
-# Import all AppWorld tools
-from api_docs_show_app_descriptions import show_app_descriptions, AppDescriptionsOutput
-from api_docs_show_api_descriptions import show_api_descriptions, ApiDescriptionsOutput
-from api_docs_show_api_doc import show_api_doc, ApiDocOutput
-from show_account_passwords import show_account_passwords, AccountPasswordsOutput
-from file_system_login import file_system_login, FileSystemLoginOutput
-from file_system_create_directory import create_directory, CreateDirectoryOutput
-from file_system_create_file import create_file, CreateFileOutput
-from file_system_show_file import show_file, ShowFileOutput
-from file_system_update_file import update_file, UpdateFileOutput
-from spotify_login import spotify_login, SpotifyLoginOutput
-from spotify_show_playlist_library import show_playlist_library, PlaylistLibraryOutput
-from spotify_show_song import show_song, SongOutput
-from spotify_show_liked_songs import show_liked_songs, LikedSongsOutput
-from spotify_search_songs import search_songs, SearchSongsOutput
-from spotify_search_artists import search_artists, SearchArtistsOutput
-from spotify_follow_artist import follow_artist, FollowArtistOutput
-from spotify_show_playlist import show_playlist, PlaylistOutput
-from spotify_add_song_to_playlist import add_song_to_playlist, MessageOutput as AddSongOutput
-from spotify_remove_song_from_playlist import remove_song_from_playlist, MessageOutput as RemoveSongOutput
-from spotify_review_song import review_song, ReviewSongOutput
-from spotify_update_song_review import update_song_review, UpdateSongReviewOutput
-from spotify_show_song_review import show_song_review, SongReviewOutput
-from spotify_show_song_reviews import show_song_reviews, SongReviewsOutput
-from spotify_delete_song_review import delete_song_review, DeleteSongReviewOutput
-from phone_login import phone_login, PhoneLoginOutput
-from phone_search_text_messages import search_text_messages, TextMessagesOutput
-from phone_get_current_date_and_time import get_current_date_and_time, DateTimeOutput
-from spotify_show_song_library import show_song_library, SongLibraryOutput
-from spotify_show_album_library import show_album_library, AlbumLibraryOutput
-from spotify_show_recommendations import show_recommendations, RecommendationsOutput
-from spotify_signup import signup, SignupOutput
-from spotify_logout import logout, LogoutOutput
-from spotify_show_profile import show_profile as spotify_show_profile, SpotifyProfileOutput
-from spotify_show_account import show_account, SpotifyAccountOutput
-from spotify_update_account_name import update_account_name, UpdateAccountNameOutput
-from spotify_search_users import search_users, SearchUsersOutput
-from spotify_show_genres import show_genres, GenresOutput
-from spotify_show_song_privates import show_song_privates, SongPrivatesOutput
-from spotify_like_song import like_song, LikeSongOutput
-from spotify_unlike_song import unlike_song, UnlikeSongOutput
-from spotify_search_albums import search_albums, SearchAlbumsOutput
-from spotify_show_album import show_album, AlbumOutput
-from spotify_show_album_privates import show_album_privates, AlbumPrivatesOutput
-from spotify_like_album import like_album, LikeAlbumOutput
-from spotify_unlike_album import unlike_album, UnlikeAlbumOutput
-from spotify_show_liked_albums import show_liked_albums, LikedAlbumsOutput
-from spotify_search_playlists import search_playlists, SearchPlaylistsOutput
-from spotify_show_playlist_privates import show_playlist_privates, PlaylistPrivatesOutput
-from spotify_create_playlist import create_playlist, CreatePlaylistOutput
-from spotify_update_playlist import update_playlist, UpdatePlaylistOutput
-from spotify_delete_playlist import delete_playlist, DeletePlaylistOutput
-from spotify_like_playlist import like_playlist, LikePlaylistOutput
-from spotify_unlike_playlist import unlike_playlist, UnlikePlaylistOutput
-from spotify_show_liked_playlists import show_liked_playlists, LikedPlaylistsOutput
-from spotify_show_artist import show_artist, ArtistOutput
-from spotify_show_artist_following import show_artist_following, ArtistFollowingOutput
-from spotify_add_song_to_library import add_song_to_library, AddSongToLibraryOutput
-from spotify_remove_song_from_library import remove_song_from_library, RemoveSongFromLibraryOutput
-from spotify_add_album_to_library import add_album_to_library, AddAlbumToLibraryOutput
-from spotify_remove_album_from_library import remove_album_from_library, RemoveAlbumFromLibraryOutput
-from spotify_show_downloaded_songs import show_downloaded_songs, DownloadedSongsOutput
-from spotify_download_song import download_song, DownloadSongOutput
-from spotify_remove_downloaded_song import remove_downloaded_song, RemoveDownloadedSongOutput
-from spotify_show_following_artists import show_following_artists, FollowingArtistsOutput
-from spotify_unfollow_artist import unfollow_artist, UnfollowArtistOutput
-from spotify_show_album_reviews import show_album_reviews, AlbumReviewsOutput
-from spotify_review_album import review_album, ReviewAlbumOutput
-from spotify_update_album_review import update_album_review, UpdateAlbumReviewOutput
-from spotify_delete_album_review import delete_album_review, DeleteAlbumReviewOutput
-from spotify_show_album_review import show_album_review, AlbumReviewOutput
-from spotify_show_playlist_reviews import show_playlist_reviews, PlaylistReviewsOutput
-from spotify_review_playlist import review_playlist, ReviewPlaylistOutput
-from spotify_update_playlist_review import update_playlist_review, UpdatePlaylistReviewOutput
-from spotify_delete_playlist_review import delete_playlist_review, DeletePlaylistReviewOutput
-from spotify_show_playlist_review import show_playlist_review, PlaylistReviewOutput
-from spotify_show_payment_cards import show_payment_cards, PaymentCardsOutput
-from spotify_show_payment_card import show_payment_card, PaymentCardOutput
-from spotify_add_payment_card import add_payment_card, AddPaymentCardOutput
-from spotify_update_payment_card import update_payment_card, UpdatePaymentCardOutput
-from spotify_delete_payment_card import delete_payment_card, DeletePaymentCardOutput
-from spotify_show_current_song import show_current_song, CurrentSongOutput
-from spotify_play_music import play_music, PlayMusicOutput
-from spotify_pause_music import pause_music, PauseMusicOutput
-from spotify_previous_song import previous_song, PreviousSongOutput
-from spotify_next_song import next_song, NextSongOutput
-from spotify_move_song_in_queue import move_song_in_queue, MoveSongInQueueOutput
-from spotify_seek_song import seek_song, SeekSongOutput
-from spotify_loop_song import loop_song, LoopSongOutput
-from spotify_shuffle_song_queue import shuffle_song_queue, ShuffleSongQueueOutput
-from spotify_show_song_queue import show_song_queue, SongQueueOutput
-from spotify_add_to_queue import add_to_queue, AddToQueueOutput
-from spotify_remove_song_from_queue import remove_song_from_queue, RemoveSongFromQueueOutput
-from spotify_clear_song_queue import clear_song_queue, ClearSongQueueOutput
-from spotify_show_volume import show_volume, VolumeOutput
-from spotify_set_volume import set_volume, SetVolumeOutput
-from spotify_show_premium_plans import show_premium_plans
-from spotify_subscribe_premium import subscribe_premium, SubscribePremiumOutput
-from spotify_show_premium_subscriptions import show_premium_subscriptions, PremiumSubscriptionsOutput
-from spotify_download_premium_subscription_receipt import download_premium_subscription_receipt, DownloadReceiptOutput
-from supervisor_complete_task import complete_task, CompleteTaskOutput
-from supervisor_show_profile import show_profile, SupervisorProfileOutput
+from apis import (
+    show_app_descriptions, AppDescriptionsOutput,
+    show_api_descriptions, ApiDescriptionsOutput,
+    show_api_doc, ApiDocOutput,
+    show_account_passwords, AccountPasswordsOutput,
+    file_system_login, FileSystemLoginOutput,
+    create_directory, CreateDirectoryOutput,
+    create_file, CreateFileOutput,
+    show_file, ShowFileOutput,
+    update_file, UpdateFileOutput,
+    spotify_login, SpotifyLoginOutput,
+    show_playlist_library, PlaylistLibraryOutput,
+    show_song, SongOutput,
+    show_liked_songs, LikedSongsOutput,
+    search_songs, SearchSongsOutput,
+    search_artists, SearchArtistsOutput,
+    follow_artist, FollowArtistOutput,
+    show_playlist, PlaylistOutput,
+    add_song_to_playlist, AddSongOutput,
+    remove_song_from_playlist, RemoveSongOutput,
+    review_song, ReviewSongOutput,
+    update_song_review, UpdateSongReviewOutput,
+    show_song_review, SongReviewOutput,
+    show_song_reviews, SongReviewsOutput,
+    delete_song_review, DeleteSongReviewOutput,
+    phone_login, PhoneLoginOutput,
+    search_text_messages, TextMessagesOutput,
+    get_current_date_and_time, DateTimeOutput,
+    show_song_library, SongLibraryOutput,
+    show_album_library, AlbumLibraryOutput,
+    show_recommendations, RecommendationsOutput,
+    signup, SignupOutput,
+    logout, LogoutOutput,
+    spotify_show_profile, SpotifyProfileOutput,
+    show_account, SpotifyAccountOutput,
+    update_account_name, UpdateAccountNameOutput,
+    search_users, SearchUsersOutput,
+    show_genres, GenresOutput,
+    show_song_privates, SongPrivatesOutput,
+    like_song, LikeSongOutput,
+    unlike_song, UnlikeSongOutput,
+    search_albums, SearchAlbumsOutput,
+    show_album, AlbumOutput,
+    show_album_privates, AlbumPrivatesOutput,
+    like_album, LikeAlbumOutput,
+    unlike_album, UnlikeAlbumOutput,
+    show_liked_albums, LikedAlbumsOutput,
+    search_playlists, SearchPlaylistsOutput,
+    show_playlist_privates, PlaylistPrivatesOutput,
+    create_playlist, CreatePlaylistOutput,
+    update_playlist, UpdatePlaylistOutput,
+    delete_playlist, DeletePlaylistOutput,
+    like_playlist, LikePlaylistOutput,
+    unlike_playlist, UnlikePlaylistOutput,
+    show_liked_playlists, LikedPlaylistsOutput,
+    show_artist, ArtistOutput,
+    show_artist_following, ArtistFollowingOutput,
+    add_song_to_library, AddSongToLibraryOutput,
+    remove_song_from_library, RemoveSongFromLibraryOutput,
+    add_album_to_library, AddAlbumToLibraryOutput,
+    remove_album_from_library, RemoveAlbumFromLibraryOutput,
+    show_downloaded_songs, DownloadedSongsOutput,
+    download_song, DownloadSongOutput,
+    remove_downloaded_song, RemoveDownloadedSongOutput,
+    show_following_artists, FollowingArtistsOutput,
+    unfollow_artist, UnfollowArtistOutput,
+    show_album_reviews, AlbumReviewsOutput,
+    review_album, ReviewAlbumOutput,
+    update_album_review, UpdateAlbumReviewOutput,
+    delete_album_review, DeleteAlbumReviewOutput,
+    show_album_review, AlbumReviewOutput,
+    show_playlist_reviews, PlaylistReviewsOutput,
+    review_playlist, ReviewPlaylistOutput,
+    update_playlist_review, UpdatePlaylistReviewOutput,
+    delete_playlist_review, DeletePlaylistReviewOutput,
+    show_playlist_review, PlaylistReviewOutput,
+    show_payment_cards, PaymentCardsOutput,
+    show_payment_card, PaymentCardOutput,
+    add_payment_card, AddPaymentCardOutput,
+    update_payment_card, UpdatePaymentCardOutput,
+    delete_payment_card, DeletePaymentCardOutput,
+    show_current_song, CurrentSongOutput,
+    play_music, PlayMusicOutput,
+    pause_music, PauseMusicOutput,
+    previous_song, PreviousSongOutput,
+    next_song, NextSongOutput,
+    move_song_in_queue, MoveSongInQueueOutput,
+    seek_song, SeekSongOutput,
+    loop_song, LoopSongOutput,
+    shuffle_song_queue, ShuffleSongQueueOutput,
+    show_song_queue, SongQueueOutput,
+    add_to_queue, AddToQueueOutput,
+    remove_song_from_queue, RemoveSongFromQueueOutput,
+    clear_song_queue, ClearSongQueueOutput,
+    show_volume, VolumeOutput,
+    set_volume, SetVolumeOutput,
+    show_premium_plans,
+    subscribe_premium, SubscribePremiumOutput,
+    show_premium_subscriptions, PremiumSubscriptionsOutput,
+    download_premium_subscription_receipt, DownloadReceiptOutput,
+    show_profile, SupervisorProfileOutput,
+    complete_task, CompleteTaskOutput,
+)
 
 _TASK_PROMPT = """
 USER:
