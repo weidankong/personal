@@ -21,6 +21,11 @@ from api_docs_show_app_descriptions import show_app_descriptions, AppDescription
 from api_docs_show_api_descriptions import show_api_descriptions, ApiDescriptionsOutput
 from api_docs_show_api_doc import show_api_doc, ApiDocOutput
 from show_account_passwords import show_account_passwords, AccountPasswordsOutput
+from file_system_login import file_system_login, FileSystemLoginOutput
+from file_system_create_directory import create_directory, CreateDirectoryOutput
+from file_system_create_file import create_file, CreateFileOutput
+from file_system_show_file import show_file, ShowFileOutput
+from file_system_update_file import update_file, UpdateFileOutput
 from spotify_login import spotify_login, SpotifyLoginOutput
 from spotify_show_playlist_library import show_playlist_library, PlaylistLibraryOutput
 from spotify_show_song import show_song, SongOutput
@@ -259,12 +264,28 @@ In case of tool_call_error, read the failed API's schema AGAIN.
 """
 
 async def run_one_case(task_id):
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs")
+    output_path = os.path.join(output_dir, f"{task_id}.txt")
+
+    # Redirect stdout to capture all print output
+    from io import StringIO
+    captured = StringIO()
+    original_stdout = sys.stdout
+
     # Create and inject the AppWorld instance
 
     codebox = CodeActEnv()
 
     # Register tools callable in the codebox
+    codebox.register_callable_tool(show_app_descriptions, output_model=AppDescriptionsOutput)
+    codebox.register_callable_tool(show_api_descriptions, output_model=ApiDescriptionsOutput)
+    codebox.register_callable_tool(show_api_doc, output_model=ApiDocOutput)
     codebox.register_callable_tool(show_account_passwords, output_model=AccountPasswordsOutput)
+    codebox.register_callable_tool(file_system_login, output_model=FileSystemLoginOutput)
+    codebox.register_callable_tool(create_directory, output_model=CreateDirectoryOutput)
+    codebox.register_callable_tool(create_file, output_model=CreateFileOutput)
+    codebox.register_callable_tool(show_file, output_model=ShowFileOutput)
+    codebox.register_callable_tool(update_file, output_model=UpdateFileOutput)
     codebox.register_callable_tool(spotify_login, output_model=SpotifyLoginOutput)
     codebox.register_callable_tool(show_playlist_library, output_model=PlaylistLibraryOutput)
     codebox.register_callable_tool(show_song, output_model=SongOutput)
@@ -362,6 +383,17 @@ async def run_one_case(task_id):
     await codebox.start()
     _world_mod.world = AppWorld(task_id=task_id, experiment_name="codeact_test")
 
+    class Tee:
+        def __init__(self, *streams):
+            self.streams = streams
+        def write(self, data):
+            for s in self.streams:
+                s.write(data)
+        def flush(self):
+            for s in self.streams:
+                s.flush()
+
+    sys.stdout = Tee(original_stdout, captured)
     try:
         toolkit = Toolkit()
 
@@ -381,7 +413,7 @@ async def run_one_case(task_id):
             name="Friday",
             sys_prompt=CODEACT_SYSTEM_PROMPT,
             model=DashScopeChatModel(
-                model_name="qwen-max",
+                model_name="qwen3.7-max",
                 api_key=os.environ["DASHSCOPE_API_KEY"],
                 stream=True,
             ),
@@ -405,27 +437,32 @@ async def run_one_case(task_id):
             role="user",
         )
         msg.content += f"\nMy name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}."
-        while True:
+
+        for _ in range(3):
             msg = await agent(msg)
             if world.task_completed():
                 print("\nTask completed!")
                 break
-            # msg = Msg(name="user", content="continue", role="user")
-            break
+            msg = Msg(name="user", content="continue", role="user")
 
         report = world.evaluate().report()
         print(f"\n--- Evaluation Report ---")
         print(report)
 
     finally:
+        sys.stdout = original_stdout
+        with open(output_path, "w") as f:
+            f.write(captured.getvalue())
+        print(f"[{task_id}] Output saved to {output_path}")
         await codebox.stop()
         _world_mod.world.close()
 
 async def main():
     cases = read_cases()
-    await run_one_case(task_id='287e338_2')
-    # for case in cases:
-    #     await run_one_case(task_id=case)
+    # await run_one_case('396c5a2_1')
+    for case in cases:
+        if case.endswith("_1") and not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", f"{case}.txt")):
+            await run_one_case(task_id=case)
 
 def read_cases():
     cases_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cases.txt")

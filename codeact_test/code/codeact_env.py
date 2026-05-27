@@ -35,9 +35,9 @@ def _generate_call_tool_code(host_tool_url: str) -> str:
         "    _data = _resp.json()\n"
         ""
         "    if 'isError' in _data and _data['isError']:\n"
+        "        print(f'<tool_call_error>{tool_name}({kwargs}): {_data}</tool_call_error>')\n"
         "        if 'exception' in _data:\n"
         "            raise RuntimeError(_data['exception'])\n"
-        "        print(f'<tool_call_error>{tool_name}({kwargs}): {_data}</tool_call_error>')\n"
         "    if 'metadata' in _data and 'isError' not in _data:\n"
         '        print(f\'<tool_call_result>{tool_name}({kwargs}): {_data["metadata"]}</tool_call_result>\')\n'
         "        return _data['metadata']\n"
