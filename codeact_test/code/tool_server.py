@@ -45,9 +45,12 @@ class ToolServer:
                         resp["isError"] = True
                     return resp
                 except Exception as e:
-                    print(f"---------[{tool_name}] args={body.arguments}\nError: {e}--------")
-                    return {"content": [{"type": "text", "text": f"[{tool_name}] args={body.arguments}\nError: {e}"}], "isError": True}
-            print(f'------{tool_name} NOT FOUND')
+                    return {
+                        "content": [{"type": "text", "text": f"[{tool_name}] args={body.arguments}\nError: {e}"}],
+                        "isError": True,
+                        "exception": f"{e}"
+                    }
+            print(f'------{tool_name} NOT FOUND--------')
             return {"content": [{"type": "text", "text": f"Error: Tool '{tool_name}' not found"}], "isError": True}
 
     def register(self, func: callable):

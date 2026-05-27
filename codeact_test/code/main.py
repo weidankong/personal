@@ -26,6 +26,8 @@ from spotify_show_playlist_library import show_playlist_library, PlaylistLibrary
 from spotify_show_song import show_song, SongOutput
 from spotify_show_liked_songs import show_liked_songs, LikedSongsOutput
 from spotify_search_songs import search_songs, SearchSongsOutput
+from spotify_search_artists import search_artists, SearchArtistsOutput
+from spotify_follow_artist import follow_artist, FollowArtistOutput
 from spotify_show_playlist import show_playlist, PlaylistOutput
 from spotify_add_song_to_playlist import add_song_to_playlist, MessageOutput as AddSongOutput
 from spotify_remove_song_from_playlist import remove_song_from_playlist, MessageOutput as RemoveSongOutput
@@ -36,8 +38,156 @@ from spotify_show_song_reviews import show_song_reviews, SongReviewsOutput
 from spotify_delete_song_review import delete_song_review, DeleteSongReviewOutput
 from phone_login import phone_login, PhoneLoginOutput
 from phone_search_text_messages import search_text_messages, TextMessagesOutput
+from phone_get_current_date_and_time import get_current_date_and_time, DateTimeOutput
+from spotify_show_song_library import show_song_library, SongLibraryOutput
+from spotify_show_album_library import show_album_library, AlbumLibraryOutput
+from spotify_show_recommendations import show_recommendations, RecommendationsOutput
 from supervisor_complete_task import complete_task, CompleteTaskOutput
 from supervisor_show_profile import show_profile, SupervisorProfileOutput
+
+_TASK_PROMPT = """
+USER:
+I am your supervisor and you are a super intelligent AI Assistant whose job is to achieve my day-to-day tasks completely autonomously.
+
+To do this, you will need to interact with app/s (e.g., spotify, venmo, etc) using their associated APIs on my behalf. For this you will undertake a *multi-step conversation* using a python REPL environment. That is, you will write the python code and the environment will execute it and show you the result, based on which, you will write python code for the next step and so on, until you've achieved the goal. This environment will let you interact with app/s using their associated APIs on my behalf.
+
+Here are three key APIs that you need to know to get more information
+
+# To get a list of apps that are available to you.
+print(show_app_descriptions())
+
+# To get the list of apis under any app listed above, e.g. supervisor
+print(show_api_descriptions(app_name='supervisor'))
+
+# To get the specification of a particular api, e.g. supervisor app's show_account_passwords
+print(show_api_doc(app_name='supervisor', api_name='show_account_passwords'))
+
+Each code execution will produce an output that you can use in subsequent calls. Using these APIs, you can now generate code, that the environment will execute, to solve the task.
+
+For example, consider the task:
+
+My name is: Jane Doe. My personal email is jane@example.com and phone number is 555-1234.
+
+Task:
+
+What is the password for my Spotify account?
+
+ASSISTANT:
+{
+    "type": "tool_use",
+    "id": "call_07fb51ebe2934bd2933791",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Obtain the supervisor's Spotify account details\npasswords = call_tool('show_account_passwords')\n# So the Spotify password is the entry with account_name=\"spotify\".\n
+        spotify_password = [p for p in passwords if p[\"account_name\"] == \"spotify\"][0][\"password\"]"\nprint(spotify_password)\n"
+    }
+}
+
+USER:
+Marked the active task complete.
+
+----------------------------------------------
+
+USER:
+**Key instructions and disclaimers**:
+
+1. The email addresses, access tokens and variables in the example above were only for demonstration. Obtain the correct information by calling relevant APIs yourself.
+2. Only generate valid code blocks, i.e., do not put them in ```...``` or add any extra formatting. Any thoughts should be put as code comments.
+3. You can use the variables from the previous code blocks in the subsequent code blocks.
+4. Write small chunks of code and only one chunk of code in every step. Make sure everything is working correctly before making any irreversible change.
+5. The provided Python environment has access to its standard library. But modules and functions that have a risk of affecting the underlying OS, file system or process are disabled.
+6. Any reference to a file system in the task instructions means the file system *app*, operable via given APIs, and not the actual file system the code is running on.
+7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for Spotify.
+8. The provided API documentation has both the input arguments and the output JSON schemas. All calls to APIs and parsing its outputs must be as per this documentation.
+9. For APIs that return results in "pages", make sure to consider all pages.
+10. To obtain current date or time, use Python functions like `datetime.now()` or obtain it from the phone app. Do not rely on your existing knowledge of what the current date or time is.
+11. For all temporal requests, use proper time boundaries, e.g., if I ask for something that happened yesterday, make sure to consider the time between 00:00:00 and 23:59:59.
+12. Any reference to friends, family or any other person or relation refers to the people in the phone's contacts list.
+13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in the "supervisor" app. Access them via the APIs provided by the supervisor app.
+14. Once you have completed the task, call `complete_task()`. If the task asks for some information, return it as the answer argument, i.e. call `complete_task(answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
+15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the Spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
+16. You can also pass `status="fail"` in the complete_task API if you are sure you cannot solve it and want to exit.
+17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
+
+for Spotify use lower case spotify
+Now, call `run_python_code` tool with your code to solve the actual task:
+
+__INSTRUCTION__
+
+In case of tool_call_error, read the failed API's schema AGAIN.
+"""
+
+_TASK_PROMPT = """
+USER:
+I am your supervisor and you are a super intelligent AI Assistant whose job is to achieve my day-to-day tasks completely autonomously.
+
+To do this, you will need to interact with app/s (e.g., spotify, venmo, etc) using their associated APIs on my behalf. For this you will undertake a *multi-step conversation* using a python REPL environment. That is, you will write the python code and the environment will execute it and show you the result, based on which, you will write python code for the next step and so on, until you've achieved the goal. This environment will let you interact with app/s using their associated APIs on my behalf.
+
+Here are three key APIs that you need to know to get more information
+
+# To get a list of apps that are available to you.
+print(show_app_descriptions())
+
+# To get the list of apis under any app listed above, e.g. supervisor
+print(show_api_descriptions(app_name='supervisor'))
+
+# To get the specification of a particular api, e.g. supervisor app's show_account_passwords
+print(show_api_doc(app_name='supervisor', api_name='show_account_passwords'))
+
+Each code execution will produce an output that you can use in subsequent calls. Using these APIs, you can now generate code, that the environment will execute, to solve the task.
+
+For example, consider the task:
+
+My name is: Jane Doe. My personal email is jane@example.com and phone number is 555-1234.
+
+Task:
+
+What is the password for my Spotify account?
+
+ASSISTANT:
+{
+    "type": "tool_use",
+    "id": "call_07fb51ebe2934bd2933791",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Obtain the supervisor's Spotify account details\npasswords = call_tool('show_account_passwords')\n# So the Spotify password is the entry with account_name=\"spotify\".\n
+        spotify_password = [p for p in passwords if p[\"account_name\"] == \"spotify\"][0][\"password\"]"\nprint(spotify_password)\n"
+    }
+}
+
+USER:
+Marked the active task complete.
+
+----------------------------------------------
+
+USER:
+**Key instructions and disclaimers**:
+
+1. The email addresses, access tokens and variables in the example above were only for demonstration. Obtain the correct information by calling relevant APIs yourself.
+2. Only generate valid code blocks, i.e., do not put them in ```...``` or add any extra formatting. Any thoughts should be put as code comments.
+3. You can use the variables from the previous code blocks in the subsequent code blocks.
+4. Write small chunks of code and only one chunk of code in every step. Make sure everything is working correctly before making any irreversible change.
+5. The provided Python environment has access to its standard library. But modules and functions that have a risk of affecting the underlying OS, file system or process are disabled.
+6. Any reference to a file system in the task instructions means the file system *app*, operable via given APIs, and not the actual file system the code is running on.
+7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for Spotify.
+8. The provided API documentation has both the input arguments and the output JSON schemas. All calls to APIs and parsing its outputs must be as per this documentation.
+9. For APIs that return results in "pages", make sure to consider all pages.
+10. To obtain current date or time, use Python functions like `datetime.now()` or obtain it from the phone app. Do not rely on your existing knowledge of what the current date or time is.
+11. For all temporal requests, use proper time boundaries, e.g., if I ask for something that happened yesterday, make sure to consider the time between 00:00:00 and 23:59:59.
+12. Any reference to friends, family or any other person or relation refers to the people in the phone's contacts list.
+13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in the "supervisor" app. Access them via the APIs provided by the supervisor app.
+14. Once you have completed the task, call `complete_task()`. If the task asks for some information, return it as the answer argument, i.e. call `complete_task(answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
+15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the Spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
+16. You can also pass `status="fail"` in the complete_task API if you are sure you cannot solve it and want to exit.
+17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
+
+for Spotify use lower case spotify
+Now, call `run_python_code` tool with your code to solve the actual task:
+
+__INSTRUCTION__
+
+In case of tool_call_error, read the failed API's schema AGAIN.
+"""
 
 async def run_one_case(task_id):
     # Create and inject the AppWorld instance
@@ -51,6 +201,8 @@ async def run_one_case(task_id):
     codebox.register_callable_tool(show_song, output_model=SongOutput)
     codebox.register_callable_tool(show_liked_songs, output_model=LikedSongsOutput)
     codebox.register_callable_tool(search_songs, output_model=SearchSongsOutput)
+    codebox.register_callable_tool(search_artists, output_model=SearchArtistsOutput)
+    codebox.register_callable_tool(follow_artist, output_model=FollowArtistOutput)
     codebox.register_callable_tool(show_playlist, output_model=PlaylistOutput)
     codebox.register_callable_tool(add_song_to_playlist, output_model=AddSongOutput)
     codebox.register_callable_tool(remove_song_from_playlist, output_model=RemoveSongOutput)
@@ -61,6 +213,10 @@ async def run_one_case(task_id):
     codebox.register_callable_tool(delete_song_review, output_model=DeleteSongReviewOutput)
     codebox.register_callable_tool(phone_login, output_model=PhoneLoginOutput)
     codebox.register_callable_tool(search_text_messages, output_model=TextMessagesOutput)
+    codebox.register_callable_tool(get_current_date_and_time, output_model=DateTimeOutput)
+    codebox.register_callable_tool(show_song_library, output_model=SongLibraryOutput)
+    codebox.register_callable_tool(show_album_library, output_model=AlbumLibraryOutput)
+    codebox.register_callable_tool(show_recommendations, output_model=RecommendationsOutput)
     codebox.register_callable_tool(show_profile, output_model=SupervisorProfileOutput)
     codebox.register_callable_tool(complete_task, output_model=CompleteTaskOutput)
 
@@ -79,9 +235,9 @@ async def run_one_case(task_id):
         print(codebox.run_python_code_description)
 
         # Register host tools directly (agent can call them without sandbox)
-        toolkit.register_tool_function(show_app_descriptions)
-        toolkit.register_tool_function(show_api_descriptions)
-        toolkit.register_tool_function(show_api_doc)
+        # toolkit.register_tool_function(show_app_descriptions)
+        # toolkit.register_tool_function(show_api_descriptions)
+        # toolkit.register_tool_function(show_api_doc)
 
         agent = ReActAgent(
             name="Friday",
@@ -107,38 +263,10 @@ async def run_one_case(task_id):
 
         msg = Msg(
             name="user",
-            content=f"""
-USER:
-**Key instructions and disclaimers**:
-
-1. The email addresses, access tokens and variables in the example above were only for demonstration. Obtain the correct information by calling relevant APIs yourself.
-2. Only generate valid code blocks, i.e., do not put them in ```...``` or add any extra formatting. Any thoughts should be put as code comments.
-3. You can use the variables from the previous code blocks in the subsequent code blocks.
-4. Write small chunks of code and only one chunk of code in every step. Make sure everything is working correctly before making any irreversible change.
-5. The provided Python environment has access to its standard library. But modules and functions that have a risk of affecting the underlying OS, file system or process are disabled.
-6. Any reference to a file system in the task instructions means the file system *app*, operable via given APIs, and not the actual file system the code is running on.
-7. To interact with apps, only use the provided APIs, and not the corresponding Python packages. E.g., do NOT use `spotipy` for Spotify.
-8. The provided API documentation has both the input arguments and the output JSON schemas. All calls to APIs and parsing its outputs must be as per this documentation.
-9. For APIs that return results in "pages", make sure to consider all pages.
-10. To obtain current date or time, use Python functions like `datetime.now()` or obtain it from the phone app. Do not rely on your existing knowledge of what the current date or time is.
-11. For all temporal requests, use proper time boundaries, e.g., if I ask for something that happened yesterday, make sure to consider the time between 00:00:00 and 23:59:59.
-12. Any reference to friends, family or any other person or relation refers to the people in the phone's contacts list.
-13. All personal information, and information about app account credentials, physical addresses and owned payment cards are stored in the "supervisor" app. Access them via the APIs provided by the supervisor app.
-14. Once you have completed the task, call `apis.supervisor.complete_task()`. If the task asks for some information, return it as the answer argument, i.e. call `apis.supervisor.complete_task(answer=<answer>)`. For tasks that do not require an answer, just skip the answer argument or pass it as None.
-15. The answers, when given, should be just entity or number, not full sentences, e.g., `answer=10` for "How many songs are in the Spotify queue?". When an answer is a number, it should be in numbers, not in words, e.g., "10" and not "ten".
-16. You can also pass `status="fail"` in the complete_task API if you are sure you cannot solve it and want to exit.
-17. You must make all decisions completely autonomously and not ask for any clarifications or confirmations.
-
-for Spotify use lower case spotify
-Now, call `run_python_code` tool with your code to solve the actual task:
-
-{world.task.instruction}
-
-In case of tool_call_error, read the failed API's schema AGAIN.
-"""
-            f"My name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}.",
+            content=_TASK_PROMPT.replace("__INSTRUCTION__", world.task.instruction),
             role="user",
         )
+        msg.content += f"\nMy name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}."
         while True:
             msg = await agent(msg)
             if world.task_completed():
@@ -156,6 +284,20 @@ In case of tool_call_error, read the failed API's schema AGAIN.
         _world_mod.world.close()
 
 async def main():
-    await run_one_case(task_id='82e2fac_1') #'042a9fc_1') #'82e2fac_1')
+    cases = read_cases()
+    await run_one_case(task_id='287e338_2')
+    # for case in cases:
+    #     await run_one_case(task_id=case)
+
+def read_cases():
+    cases_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cases.txt")
+    cases = []
+    with open(cases_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            cases.append(line)
+    return cases
 
 asyncio.run(main())
