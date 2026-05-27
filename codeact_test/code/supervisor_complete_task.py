@@ -15,7 +15,7 @@ from util import fmt, convert
 
 
 class CompleteTaskOutput(BaseModel):
-    message: str = Field(description="Confirmation message")
+    complete_message: str = Field(description="Confirmation message")
 
 def complete_task(
     answer: Union[str, int, float, None] = None,
@@ -36,7 +36,7 @@ def complete_task(
     """
     code = f"apis.supervisor.complete_task(answer={fmt(answer)}, status={fmt(status)})"
     output = world.world.execute(code)
-    output = convert(output)
+    output = json.dumps({"complete_message": output})
     return ToolResponse(
         content=[TextBlock(type="text", text=output)],
         metadata=json.loads(output),

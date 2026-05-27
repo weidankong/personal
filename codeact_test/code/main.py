@@ -45,9 +45,6 @@ async def run_one_case(task_id):
     codebox = CodeActEnv()
 
     # Register tools callable in the codebox
-    # codebox.register_callable_tool(show_app_descriptions, output_model=AppDescriptionsOutput)
-    # codebox.register_callable_tool(show_api_descriptions, output_model=ApiDescriptionsOutput)
-    # codebox.register_callable_tool(show_api_doc, output_model=ApiDocOutput)
     codebox.register_callable_tool(show_account_passwords, output_model=AccountPasswordsOutput)
     codebox.register_callable_tool(spotify_login, output_model=SpotifyLoginOutput)
     codebox.register_callable_tool(show_playlist_library, output_model=PlaylistLibraryOutput)
@@ -85,17 +82,6 @@ async def run_one_case(task_id):
         toolkit.register_tool_function(show_app_descriptions)
         toolkit.register_tool_function(show_api_descriptions)
         toolkit.register_tool_function(show_api_doc)
-        # toolkit.register_tool_function(show_account_passwords)
-        # toolkit.register_tool_function(login)
-        # toolkit.register_tool_function(show_playlist_library)
-        # toolkit.register_tool_function(show_song)
-        # toolkit.register_tool_function(show_liked_songs)
-        # toolkit.register_tool_function(review_song)
-        # toolkit.register_tool_function(update_song_review)
-        # toolkit.register_tool_function(show_song_review)
-        # toolkit.register_tool_function(show_song_reviews)
-        # toolkit.register_tool_function(delete_song_review)
-        toolkit.register_tool_function(complete_task)
 
         agent = ReActAgent(
             name="Friday",
@@ -148,6 +134,7 @@ Now, call `run_python_code` tool with your code to solve the actual task:
 
 {world.task.instruction}
 
+In case of tool_call_error, read the failed API's schema AGAIN.
 """
             f"My name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}.",
             role="user",

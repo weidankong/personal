@@ -25,7 +25,6 @@ def _generate_call_tool_code(host_tool_url: str) -> str:
         "        full response dict.\n"
         '    """\n'
 
-        '    print(f"[call_tool] {tool_name}({kwargs})")\n'
         "    import requests as _req\n"
         "    _resp = _req.post(\n"
         f'        "{endpoint}" + tool_name,\n'
@@ -35,7 +34,7 @@ def _generate_call_tool_code(host_tool_url: str) -> str:
         "    _resp.raise_for_status()\n"
         "    _data = _resp.json()\n"
         "    if 'isError' in _data and _data['isError']:\n"
-        "        print(f'<tool_call_error>: {tool_name} returned error: {_data}</tool_call_error>')\n"
+        "        print(f'<tool_call_error>{tool_name}({kwargs}): {_data}</tool_call_error>')\n"
         "    if 'metadata' in _data and 'isError' not in _data:\n"
         "        return _data['metadata']\n"
         "    return _data\n"
