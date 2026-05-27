@@ -1,0 +1,192 @@
+
+============================================================
+Task ID: e85d92a_2
+Supervisor: Connor Brown
+Instruction: What is the title of the least played song by Zoey James on Spotify.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='search_songs'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_artist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "search_songs",
+ "path": "/spotify/songs",
+ "method": "GET",
+ "description": "Search for songs with a query.",
+ "parameters": [
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+   "default": "",
+   "constraints": []
+  },
+  {
+   "name": "artist_id",
+   "type": "integer",
+   "required": false,
+   "description": "The artist id to filter the search results by.",
+   "default": null,
+   "constraints"
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='search_artists'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "search_artists",
+ "path": "/spotify/artists",
+ "method": "GET",
+ "description": "Search for artists with a query.",
+ "parameters": [
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+   "default": "",
+   "constraints": []
+  },
+  {
+   "name": "genre",
+   "type": "string",
+   "required": false,
+   "description": "The genre to filter the artists by.",
+   "default": null,
+   "constraints": []
+  },
+
+--- Step 4 ---
+Code:
+# Search for the artist "Zoey James" to get their artist_id
+artists = apis.spotify.search_artists(query="Zoey James")
+print(artists)
+Output: [
+ {
+  "artist_id": 9,
+  "name": "Zoey James",
+  "genre": "rock",
+  "follower_count": 24,
+  "created_at": "2019-09-30T05:50:02"
+ },
+ {
+  "artist_id": 1,
+  "name": "Olivia Roberts",
+  "genre": "R&B",
+  "follower_count": 20,
+  "created_at": "2019-02-16T02:03:49"
+ },
+ {
+  "artist_id": 2,
+  "name": "Phoenix Rivers",
+  "genre": "R&B",
+  "follower_count": 18,
+  "created_at": "2019-07-19T23:15:43"
+ },
+ {
+  "artist_id": 3,
+  "name": "Jasper Skye",
+  "genre": "EDM",
+  "follower_count": 23,
+  "created_at"
+--- Step 5 ---
+Code:
+apis.spotify.search_songs(artist_id=9, sort_by="+play_count", page_limit=20)
+Output: Execution successful.
+--- Step 6 ---
+Code:
+songs = apis.spotify.search_songs(artist_id=9, sort_by="+play_count", page_limit=20)
+print(songs)
+Output: [
+ {
+  "song_id": 68,
+  "title": "Lost in the Wilderness of Love",
+  "album_id": 14,
+  "album_title": "Midnight Serenade",
+  "duration": 280,
+  "artists": [
+   {
+    "id": 34,
+    "name": "Lily Moon"
+   },
+   {
+    "id": 9,
+    "name": "Zoey James"
+   }
+  ],
+  "release_date": "2022-02-21T17:34:33",
+  "genre": "rock",
+  "play_count": 156,
+  "rating": 3.0,
+  "like_count": 13,
+  "review_count": 3,
+  "shareable_link": "https://spotify.com/songs/68"
+ },
+ {
+  "song_id": 133,
+  "title": "The Fleeting J
+--- Step 7 ---
+Code:
+least_played_song_title = songs[0]["title"]
+print(least_played_song_title)
+Output: Lost in the Wilderness of Love
+
+--- Step 8 ---
+Code:
+apis.supervisor.complete_task(answer="Lost in the Wilderness of Love")
+Output: Execution successful.
+
+Task completed at step 8!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

@@ -1,0 +1,342 @@
+
+============================================================
+Task ID: 692c77d_3
+Supervisor: Jessica Miller
+Instruction: Give a 4-star rating to all songs in my Spotify album library which I have liked. If I have already rated it lower, increase it to 4.
+============================================================
+
+--- Step 1 ---
+Code:
+# Let's first check the available APIs for the Spotify app.
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+# Let's check the liked songs and the album library to understand the data structure.
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_liked_songs'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='review_song'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_review'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_liked_songs",
+ "path": "/spotify/liked_songs",
+ "method": "GET",
+ "description": "Get a list of songs you have liked.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "page_index",
+   "type": "integer",
+   "required": false,
+   "description": "The index of the page to return.",
+   "d
+--- Step 3 ---
+Code:
+# Let's get the account passwords to log in to Spotify, and also check the API docs for show_song_privates and show_album.
+print(apis.supervisor.show_account_passwords())
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_privates'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "t{w^3Hx"
+ },
+ {
+  "account_name": "file_system",
+  "password": ")(5$8Rr"
+ },
+ {
+  "account_name": "gmail",
+  "password": "wM{q0*k"
+ },
+ {
+  "account_name": "phone",
+  "password": "5!Dkf5d"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "8EDS!-R"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "o&xXvee"
+ },
+ {
+  "account_name": "spotify",
+  "password": "7w0A*Vw"
+ },
+ {
+  "account_name": "todoist",
+  "password": "&I]qO(X"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+# Let's log in to Spotify to get the access token.
+login_response = apis.spotify.login(username='jes.mill@gmail.com', password='7w0A*Vw')
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plcy5taWxsQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.hn6fnManbFM0p2iQt5LOVJR5jSF7IoPOY2_Zb72-nS0",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+# Let's check the docs for show_song_reviews and update_song_review to understand how to check existing ratings and update them.
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_reviews'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='update_song_review'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_reviews",
+ "path": "/spotify/songs/{song_id}/reviews",
+ "method": "GET",
+ "description": "Search or show a list of reviews for a song.",
+ "parameters": [
+  {
+   "name": "song_id",
+   "type": "integer",
+   "required": true,
+   "description": "The song id to retrieve reviews for.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+   "defaul
+--- Step 6 ---
+Code:
+# Let's fetch the albums in the user's album library.
+access_token = login_response['access_token']
+albums_page_0 = apis.spotify.show_album_library(access_token=access_token, page_index=0, page_limit=20)
+print(albums_page_0)
+Output: [
+ {
+  "album_id": 1,
+  "title": "Echo Chamber Chronicles",
+  "genre": "EDM",
+  "artists": [
+   {
+    "id": 3,
+    "name": "Jasper Skye"
+   },
+   {
+    "id": 26,
+    "name": "Isabella Cruz"
+   },
+   {
+    "id": 6,
+    "name": "Seraphina Dawn"
+   }
+  ],
+  "rating": 3.2,
+  "like_count": 34,
+  "review_count": 12,
+  "release_date": "2022-10-29T01:54:53",
+  "song_ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "added_at": "2023-05-15T03:03:10"
+ },
+ {
+  "album_id": 15,
+  "title": "Whispers in 
+--- Step 7 ---
+Code:
+# Let's collect all song IDs from the album library and check their private status to see which ones are liked.
+all_song_ids = []
+for album in albums_page_0:
+    all_song_ids.extend(album['song_ids'])
+
+print(f"Total songs in album library: {len(all_song_ids)}")
+
+# Let's check the first song to understand the flow
+song_id = all_song_ids[0]
+privates = apis.spotify.show_song_privates(song_id=song_id, access_token=access_token)
+print(f"Song {song_id} privates: {privates}")
+Output: Total songs in album library: 41
+Song 1 privates: {'liked': True, 'reviewed': True, 'in_song_library': False, 'downloaded': False}
+
+--- Step 8 ---
+Code:
+# Let's fetch all albums from the library to ensure we have all songs.
+albums = []
+page_index = 0
+while True:
+    page = apis.spotify.show_album_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not page:
+        break
+    albums.extend(page)
+    if len(page) < 20:
+        break
+    page_index += 1
+
+all_song_ids = []
+for album in albums:
+    all_song_ids.extend(album['song_ids'])
+all_song_ids = list(set(all_song_ids))
+print(f"Total unique songs in album library: {len(all_song_ids)}")
+Output: Total unique songs in album library: 41
+
+--- Step 9 ---
+Code:
+# Let's check the reviews for song 1 to see the structure and verify the user_email filter.
+reviews = apis.spotify.show_song_reviews(song_id=1, user_email='jes.mill@gmail.com')
+print(reviews)
+Output: [
+ {
+  "song_review_id": 291,
+  "song_id": 1,
+  "rating": 1,
+  "title": "",
+  "text": "",
+  "created_at": "2023-05-18T12:00:00",
+  "user": {
+   "name": "Jessica Miller",
+   "email": "jes.mill@gmail.com"
+  }
+ }
+]
+
+--- Step 10 ---
+Code:
+# Let's write a script to iterate through all songs in the album library, check if they are liked, and then either create or update the review to 4 stars.
+access_token = login_response['access_token']
+user_email = 'jes.mill@gmail.com'
+
+albums = []
+page_index = 0
+while True:
+    page = apis.spotify.show_album_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not page:
+        break
+    albums.extend(page)
+    if len(page) < 20:
+        break
+    page_index += 1
+
+all_song_ids = set()
+for album in albums:
+    all_song_ids.update(album['song_ids'])
+
+updated_count = 0
+created_count = 0
+skipped_count = 0
+
+for song_id in all_song_ids:
+    privates = apis.spotify.show_song_privates(song_id=song_id, access_token=access_token)
+    if privates.get('liked'):
+        reviews = apis.spotify.show_song_reviews(song_id=song_id, user_email=user_email, page_limit=20)
+        my_review = None
+        for r in reviews:
+            if r['user']['email'] == user_email:
+                my_review = r
+                break
+        
+        if my_review:
+            if my_review['rating'] < 4:
+                apis.spotify.update_song_review(review_id=my_review['song_review_id'], access_token=access_token, rating=4)
+                updated_count += 1
+            else:
+                skipped_count += 1
+        else:
+            apis.spotify.review_song(song_id=song_id, rating=4, access_token=access_token)
+            created_count += 1
+
+print(f"Updated: {updated_count}, Created: {created_count}, Skipped: {skipped_count}")
+Output: Updated: 3, Created: 17, Skipped: 0
+
+--- Step 11 ---
+Code:
+# The task has been completed successfully. I will now mark it as complete.
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 11!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m7[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m7[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.SongReview.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.SongReview records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert song_ids of the updated song reviews match private_data.to_update_review_song_ids [1m([0mignore_order[1m)[0m
+[1;32m>> Passed Requirement[0m
+assert song_ids of the added song reviews match private_data.to_add_review_song_ids [1m([0mignore_order[1m)[0m
+[1;32m>> Passed Requirement[0m
+assert all added_review_song_ids have rating of public_data.target_rating.
+[1;32m>> Passed Requirement[0m
+assert all updated_review_song_ids have rating of public_data.target_rating.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m7[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m7[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.SongReview.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.SongReview records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert song_ids of the updated song reviews match private_data.to_update_review_song_ids [1m([0mignore_order[1m)[0m
+[1;32m>> Passed Requirement[0m
+assert song_ids of the added song reviews match private_data.to_add_review_song_ids [1m([0mignore_order[1m)[0m
+[1;32m>> Passed Requirement[0m
+assert all added_review_song_ids have rating of public_data.target_rating.
+[1;32m>> Passed Requirement[0m
+assert all updated_review_song_ids have rating of public_data.target_rating.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

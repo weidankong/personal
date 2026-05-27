@@ -1,0 +1,275 @@
+
+============================================================
+Task ID: b119b1f_2
+Supervisor: Anthony Harrison
+Instruction: Keep going to the next song on Spotify until you reach a song by Lily Moon.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+# Let's check the current song playing on Spotify.
+print(apis.spotify.show_current_song())
+Output: Execution failed. Traceback:
+  File "<python-input>", line 2, in <module>
+    print(apis.spotify.show_current_song())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Exception: Response status code is 401:
+{"message":"You are either not authorized to access this spotify API endpoint or your access token is missing, invalid or expired."}
+--- Step 3 ---
+Code:
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "$F!HiVT"
+ },
+ {
+  "account_name": "file_system",
+  "password": "XPsql9G"
+ },
+ {
+  "account_name": "gmail",
+  "password": "sK_Fo7s"
+ },
+ {
+  "account_name": "phone",
+  "password": "v9l1MDm"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "rw9UclF"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "l8n-_zZ"
+ },
+ {
+  "account_name": "spotify",
+  "password": "=oskMku"
+ },
+ {
+  "account_name": "todoist",
+  "password": "%VH3es3"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 5 ---
+Code:
+print(apis.spotify.login(username='an-harrison@gmail.com', password='=oskMku'))
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2FuLWhhcnJpc29uQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.j9sSS1aeT7XZGNrFD1fuaWCj8yAnhuYmWjJdiSVh_8o",
+ "token_type": "Bearer"
+}
+
+--- Step 6 ---
+Code:
+print(apis.spotify.show_current_song())
+Output: Execution failed. Traceback:
+  File "<python-input>", line 1, in <module>
+    print(apis.spotify.show_current_song())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Exception: Response status code is 401:
+{"message":"You are either not authorized to access this spotify API endpoint or your access token is missing, invalid or expired."}
+--- Step 7 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_current_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_current_song",
+ "path": "/spotify/music_player/current_song",
+ "method": "GET",
+ "description": "Show details of the current song on the queue.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "albu
+--- Step 8 ---
+Code:
+access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2FuLWhhcnJpc29uQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.j9sSS1aeT7XZGNrFD1fuaWCj8yAnhuYmWjJdiSVh_8o"
+print(apis.spotify.show_current_song(access_token=access_token))
+Output: {
+ "song_id": 36,
+ "title": "A Whisper in the Midnight Air",
+ "album_id": 7,
+ "album_title": "Vibrant Visions",
+ "duration": 234,
+ "artists": [
+  {
+   "id": 11,
+   "name": "Eliana Harper"
+  }
+ ],
+ "played_seconds": 0,
+ "is_playing": true,
+ "is_looping": false
+}
+
+--- Step 9 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='next_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "next_song",
+ "path": "/spotify/music_player/next_song",
+ "method": "POST",
+ "description": "Go to the next song in the song queue.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "message": "string",
+   "song_id": 1
+  },
+  "failure": {
+   "message": "string"
+
+--- Step 10 ---
+Code:
+access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2FuLWhhcnJpc29uQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.j9sSS1aeT7XZGNrFD1fuaWCj8yAnhuYmWjJdiSVh_8o"
+
+seen_songs = set()
+while True:
+    current_song = apis.spotify.show_current_song(access_token=access_token)
+    song_id = current_song['song_id']
+    if song_id in seen_songs:
+        print("Cycled through queue without finding Lily Moon.")
+        break
+    seen_songs.add(song_id)
+    
+    artists = [artist['name'] for artist in current_song['artists']]
+    if 'Lily Moon' in artists:
+        print("Found Lily Moon!", current_song['title'])
+        break
+    else:
+        print(f"Current song: {current_song['title']} by {artists}. Skipping...")
+        apis.spotify.next_song(access_token=access_token)
+Output: Current song: A Whisper in the Midnight Air by ['Eliana Harper']. Skipping...
+Current song: Distant Love by ['Ava Morgan']. Skipping...
+Current song: The Tragic Beauty of Love by ['Grace Harrison']. Skipping...
+Current song: Innocent Lies by ['Noah Bennett']. Skipping...
+Found Lily Moon! Lost in the Wilderness of Love
+
+--- Step 11 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 11!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert spotify.MusicPlayer has [1;36m1[0m updated using models.changed_records
+[1;32m>> Passed Requirement[0m
+assert this music player record has updated only in the cursor_position
+using models.changed_field_names
+[1;32m>> Passed Requirement[0m
+assert the currently playing song has ID private_data.song_id in the end state.
+[1;32m>> Passed Requirement[0m
+assert music player's cursor is on the song by private_data.artist_id in the end state.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert spotify.MusicPlayer has [1;36m1[0m updated using models.changed_records
+[1;32m>> Passed Requirement[0m
+assert this music player record has updated only in the cursor_position
+using models.changed_field_names
+[1;32m>> Passed Requirement[0m
+assert the currently playing song has ID private_data.song_id in the end state.
+[1;32m>> Passed Requirement[0m
+assert music player's cursor is on the song by private_data.artist_id in the end state.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

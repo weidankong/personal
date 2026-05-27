@@ -1,0 +1,232 @@
+
+============================================================
+Task ID: 50e1ac9_1
+Supervisor: Glenn Burton
+Instruction: Give me a comma-separated list of top 4 most played r&b song titles from across my Spotify song, album and playlist libraries.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_library",
+ "path": "/spotify/library/songs",
+ "method": "GET",
+ "description": "Search or show a list of songs in your song library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 4 ---
+Code:
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "kz0d(by"
+ },
+ {
+  "account_name": "file_system",
+  "password": "ym=Rysn"
+ },
+ {
+  "account_name": "gmail",
+  "password": "H9c5f9I"
+ },
+ {
+  "account_name": "phone",
+  "password": "F#_2d^6"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "}@}a=$h"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "FMLx3Hu"
+ },
+ {
+  "account_name": "spotify",
+  "password": "EbhXe%D"
+ },
+ {
+  "account_name": "todoist",
+  "password": "JBfGOar"
+ },
+ {
+  "account
+--- Step 5 ---
+Code:
+spotify_password = "EbhXe%D"
+login_response = apis.spotify.login(username="glenn.burton@gmail.com", password=spotify_password)
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2dsZW5uLmJ1cnRvbkBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.ZfYQhLH5HAUhTGeoP9Sil5Smkby8zvIfSpm2gzMvmWk",
+ "token_type": "Bearer"
+}
+
+--- Step 6 ---
+Code:
+access_token = login_response["access_token"]
+
+all_song_ids = set()
+
+# Fetch song library
+page = 0
+while True:
+    res = apis.spotify.show_song_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for s in res:
+        all_song_ids.add(s["song_id"])
+    if len(res) < 20:
+        break
+    page += 1
+
+# Fetch album library
+page = 0
+while True:
+    res = apis.spotify.show_album_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for a in res:
+        for sid in a.get("song_ids", []):
+            all_song_ids.add(sid)
+    if len(res) < 20:
+        break
+    page += 1
+
+# Fetch playlist library
+page = 0
+while True:
+    res = apis.spotify.show_playlist_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for p in res:
+        for sid in p.get("song_ids", []):
+            all_song_ids.add(sid)
+    if len(res) < 20:
+        break
+    page += 1
+
+print(len(all_song_ids))
+Output: 79
+
+--- Step 7 ---
+Code:
+rb_songs = []
+for sid in all_song_ids:
+    song_details = apis.spotify.show_song(song_id=sid)
+    if "genre" in song_details and song_details["genre"].lower() == "r&b":
+        rb_songs.append({
+            "title": song_details["title"],
+            "play_count": song_details.get("play_count", 0)
+        })
+
+rb_songs.sort(key=lambda x: x["play_count"], reverse=True)
+top_4 = rb_songs[:4]
+titles = [s["title"] for s in top_4]
+print(titles)
+Output: ["Mysteries of the Silent Sea", "Crimson Veil", "Haunted Memories", "Fire and Ice"]
+
+--- Step 8 ---
+Code:
+answer = ", ".join(titles)
+apis.supervisor.complete_task(answer=answer)
+Output: Execution successful.
+
+Task completed at step 8!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+Assert no model changes
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+Assert no model changes
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

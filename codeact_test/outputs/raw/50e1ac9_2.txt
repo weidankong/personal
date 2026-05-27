@@ -1,0 +1,196 @@
+
+============================================================
+Task ID: 50e1ac9_2
+Supervisor: Erika Blackburn
+Instruction: Give me a comma-separated list of top 6 most played edm song titles from across my Spotify song, album and playlist libraries.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_library",
+ "path": "/spotify/library/songs",
+ "method": "GET",
+ "description": "Search or show a list of songs in your song library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 4 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p for p in passwords if p["account_name"] == "spotify"][0]["password"]
+login_response = apis.spotify.login(username="erikabail@gmail.com", password=spotify_password)
+access_token = login_response["access_token"]
+print(access_token)
+Output: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2VyaWthYmFpbEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.X7Zn7xfsNMdRM2qvFzHIXvEvX4jyPhJ1jkHJK4Cptig
+
+--- Step 5 ---
+Code:
+song_ids = set()
+
+# Song library
+page = 0
+while True:
+    res = apis.spotify.show_song_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for s in res:
+        song_ids.add(s['song_id'])
+    if len(res) < 20:
+        break
+    page += 1
+
+# Album library
+page = 0
+while True:
+    res = apis.spotify.show_album_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for a in res:
+        for sid in a.get('song_ids', []):
+            song_ids.add(sid)
+    if len(res) < 20:
+        break
+    page += 1
+
+# Playlist library
+page = 0
+while True:
+    res = apis.spotify.show_playlist_library(access_token=access_token, page_index=page, page_limit=20)
+    if not res:
+        break
+    for p in res:
+        for sid in p.get('song_ids', []):
+            song_ids.add(sid)
+    if len(res) < 20:
+        break
+    page += 1
+
+print(f"Total unique song IDs: {len(song_ids)}")
+Output: Total unique song IDs: 79
+
+--- Step 6 ---
+Code:
+songs_data = []
+for sid in song_ids:
+    song = apis.spotify.show_song(song_id=sid)
+    if 'genre' in song and song['genre'] and 'edm' in song['genre'].lower():
+        songs_data.append(song)
+
+songs_data.sort(key=lambda x: x.get('play_count', 0), reverse=True)
+
+top_6 = songs_data[:6]
+titles = [s['title'] for s in top_6]
+print(titles)
+Output: [
+ "Eternal Reverie",
+ "Heartstrings Symphony",
+ "Dancing in a Field of Thorns",
+ "Lonesome Road",
+ "Painting Shadows on the Wall",
+ "Paper Planes"
+]
+
+--- Step 7 ---
+Code:
+answer = ", ".join(titles)
+apis.supervisor.complete_task(answer=answer)
+Output: Execution successful.
+
+Task completed at step 7!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+Assert no model changes
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+Assert no model changes
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

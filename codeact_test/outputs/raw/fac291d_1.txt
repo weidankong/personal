@@ -1,0 +1,278 @@
+
+============================================================
+Task ID: fac291d_1
+Supervisor: Debra Ritter
+Instruction: How many unique songs are there across my Spotify song library, albums library and all playlists?
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_library",
+ "path": "/spotify/library/songs",
+ "method": "GET",
+ "description": "Search or show a list of songs in your song library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+--- Step 3 ---
+Code:
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "3[Jx#!7"
+ },
+ {
+  "account_name": "file_system",
+  "password": "3=gqs{w"
+ },
+ {
+  "account_name": "gmail",
+  "password": "@)9JquT"
+ },
+ {
+  "account_name": "phone",
+  "password": "ag+6@4h"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "Tr+)!LH"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "KOl5bPb"
+ },
+ {
+  "account_name": "spotify",
+  "password": "7s7!cA8"
+ },
+ {
+  "account_name": "todoist",
+  "password": "3HD)_re"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 5 ---
+Code:
+access_token_resp = apis.spotify.login(username='de_ritt@gmail.com', password='7s7!cA8')
+print(access_token_resp)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2RlX3JpdHRAZ21haWwuY29tIiwiZXhwIjoxNjg0NDEyMDk4fQ.H6H5gXC79617H0gi_Su2six-3gydnfFJPcMT5711Flo",
+ "token_type": "Bearer"
+}
+
+--- Step 6 ---
+Code:
+access_token = access_token_resp['access_token']
+song_library_songs = []
+page_index = 0
+while True:
+    resp = apis.spotify.show_song_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not resp:
+        break
+    song_library_songs.extend(resp)
+    if len(resp) < 20:
+        break
+    page_index += 1
+print(len(song_library_songs))
+Output: 16
+
+--- Step 7 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_album_library",
+ "path": "/spotify/library/albums",
+ "method": "GET",
+ "description": "Search or show a list of albums in your album library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query strin
+--- Step 8 ---
+Code:
+album_library_albums = []
+page_index = 0
+while True:
+    resp = apis.spotify.show_album_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not resp:
+        break
+    album_library_albums.extend(resp)
+    if len(resp) < 20:
+        break
+    page_index += 1
+print(len(album_library_albums))
+Output: 8
+
+--- Step 9 ---
+Code:
+song_ids = set()
+for song in song_library_songs:
+    song_ids.add(song['song_id'])
+
+for album in album_library_albums:
+    for sid in album.get('song_ids', []):
+        song_ids.add(sid)
+        
+print(len(song_ids))
+Output: 46
+
+--- Step 10 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist_library",
+ "path": "/spotify/library/playlists",
+ "method": "GET",
+ "description": "Search or show a list of playlists in your playlist library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search
+--- Step 11 ---
+Code:
+playlist_library = []
+page_index = 0
+while True:
+    resp = apis.spotify.show_playlist_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not resp:
+        break
+    playlist_library.extend(resp)
+    if len(resp) < 20:
+        break
+    page_index += 1
+print(len(playlist_library))
+Output: 5
+
+--- Step 12 ---
+Code:
+for playlist in playlist_library:
+    for sid in playlist.get('song_ids', []):
+        song_ids.add(sid)
+        
+total_unique_songs = len(song_ids)
+print(total_unique_songs)
+Output: 81
+
+--- Step 13 ---
+Code:
+apis.supervisor.complete_task(answer=81)
+Output: Execution successful.
+
+Task completed at step 13!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

@@ -1,0 +1,179 @@
+
+============================================================
+Task ID: b7a9ee9_2
+Supervisor: Andrew Brown
+Instruction: Follow all artists of all reggae-genre songs in any of my playlists on Spotify.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='follow_artist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist_library",
+ "path": "/spotify/library/playlists",
+ "method": "GET",
+ "description": "Search or show a list of playlists in your playlist library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search
+--- Step 3 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_pass = [p['password'] for p in passwords if p['account_name'] == 'spotify'][0]
+print(spotify_pass)
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: kWuKkrH
+{
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schem
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username='andrew_brow@gmail.com', password='kWuKkrH')
+access_token = login_response['access_token']
+print(access_token)
+Output: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2FuZHJld19icm93QGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.LCerqUmgdsLAkLZM13pnDYLo_msSYPZm-L1BUpzT4k0
+
+--- Step 5 ---
+Code:
+all_song_ids = set()
+page_index = 0
+while True:
+    res = apis.spotify.show_playlist_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not res:
+        break
+    for pl in res:
+        all_song_ids.update(pl.get('song_ids', []))
+    if len(res) < 20:
+        break
+    page_index += 1
+
+print(f"Total unique songs in playlists: {len(all_song_ids)}")
+Output: Total unique songs in playlists: 60
+
+--- Step 6 ---
+Code:
+reggae_artist_ids = set()
+for song_id in all_song_ids:
+    song = apis.spotify.show_song(song_id=song_id)
+    if song.get('genre', '').lower() == 'reggae':
+        for artist in song.get('artists', []):
+            reggae_artist_ids.add(artist['id'])
+
+print(f"Found {len(reggae_artist_ids)} unique reggae artists.")
+print(reggae_artist_ids)
+Output: Found 5 unique reggae artists.
+{13, 15, 18, 22, 30}
+
+--- Step 7 ---
+Code:
+for artist_id in reggae_artist_ids:
+    res = apis.spotify.follow_artist(artist_id=artist_id, access_token=access_token)
+    print(f"Followed artist {artist_id}: {res}")
+
+apis.supervisor.complete_task()
+Output: Followed artist 13: {'message': 'Artist followed.'}
+Followed artist 15: {'message': 'Artist followed.'}
+Followed artist 18: {'message': 'Artist followed.'}
+Followed artist 22: {'message': 'Artist followed.'}
+Followed artist 30: {'message': 'Artist followed.'}
+
+
+Task completed at step 7!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m4[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m4[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.UserArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.UserArtistFollowing records using models.changed_records
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert artist_ids of the added artist followings match private_data.to_be_followed_artist_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m4[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m4[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.UserArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.UserArtistFollowing records using models.changed_records
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert artist_ids of the added artist followings match private_data.to_be_followed_artist_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

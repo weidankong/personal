@@ -1,0 +1,201 @@
+
+============================================================
+Task ID: 6bdbc26_2
+Supervisor: Susan Burton
+Instruction: How many people follow the artist of the currently playing song on Spotify?
+============================================================
+
+--- Step 1 ---
+Code:
+# Let's see what APIs are available in the spotify app.
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+# Let's get the details of the currently playing song.
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_current_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_current_song",
+ "path": "/spotify/music_player/current_song",
+ "method": "GET",
+ "description": "Show details of the current song on the queue.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "albu
+--- Step 3 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+print(passwords)
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "Gt$!_*W"
+ },
+ {
+  "account_name": "file_system",
+  "password": "8nNw!jZ"
+ },
+ {
+  "account_name": "gmail",
+  "password": "qu4Y7}s"
+ },
+ {
+  "account_name": "phone",
+  "password": "C4n&I40"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "e+QwbmV"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "mSqG}QU"
+ },
+ {
+  "account_name": "spotify",
+  "password": "%CCvl8v"
+ },
+ {
+  "account_name": "todoist",
+  "password": "jHZ#RPM"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username='susanmiller@gmail.com', password='%CCvl8v')
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K3N1c2FubWlsbGVyQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.m4wB6arhYsGO1RMQZ2J0nULg2azl89U0vwa-3BYhWno",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_response['access_token']
+current_song = apis.spotify.show_current_song(access_token=access_token)
+print(current_song)
+Output: {
+ "song_id": 114,
+ "title": "When All Hope Seems Lost",
+ "album_id": null,
+ "album_title": null,
+ "duration": 253,
+ "artists": [
+  {
+   "id": 6,
+   "name": "Seraphina Dawn"
+  }
+ ],
+ "played_seconds": 0,
+ "is_playing": true,
+ "is_looping": false
+}
+
+--- Step 6 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_artist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_artist",
+ "path": "/spotify/artists/{artist_id}",
+ "method": "GET",
+ "description": "Get details of a specific artist.",
+ "parameters": [
+  {
+   "name": "artist_id",
+   "type": "integer",
+   "required": true,
+   "description": "The artist id to retrieve.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "artist_id": 1,
+   "name": "string",
+   "genre": "string",
+   "follower_count": 1,
+   "created_at": "2019-01
+--- Step 7 ---
+Code:
+artist_details = apis.spotify.show_artist(artist_id=6)
+print(artist_details)
+Output: {
+ "artist_id": 6,
+ "name": "Seraphina Dawn",
+ "genre": "EDM",
+ "follower_count": 15,
+ "created_at": "2019-08-06T18:32:00"
+}
+
+--- Step 8 ---
+Code:
+# The artist of the currently playing song is Seraphina Dawn, who has 15 followers.
+apis.supervisor.complete_task(answer=15)
+Output: Execution successful.
+
+Task completed at step 8!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

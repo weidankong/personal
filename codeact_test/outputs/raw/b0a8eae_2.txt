@@ -1,0 +1,449 @@
+
+============================================================
+Task ID: b0a8eae_2
+Supervisor: Chad Brown
+Instruction: Start playing a playlist on Spotify that has enough songs for my workout today. I do not want to have to change the playlist in the middle of my workout. The workout plan is in Simple Note.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_app_descriptions())
+Output: [
+ {
+  "name": "api_docs",
+  "description": "An app to search and explore API documentation."
+ },
+ {
+  "name": "supervisor",
+  "description": "An app to access supervisor's personal information, account credentials, addresses, payment cards, and manage the assigned task."
+ },
+ {
+  "name": "amazon",
+  "description": "An online shopping app to buy products and manage orders, returns, etc."
+ },
+ {
+  "name": "phone",
+  "description": "An app to find and manage contact information for friends, family
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='simple_note'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='simple_note', api_name='search_notes'))
+Output: {
+ "app_name": "simple_note",
+ "api_name": "search_notes",
+ "path": "/simple_note/notes",
+ "method": "GET",
+ "description": "Search your notes. This will not show contents of the notes. Pinned notes will be shown first by default, except when dont_reorder_pinned is true.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from simple_note app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "que
+--- Step 4 ---
+Code:
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "JE)5c18"
+ },
+ {
+  "account_name": "file_system",
+  "password": "GuKKmxY"
+ },
+ {
+  "account_name": "gmail",
+  "password": "Hvq@E%S"
+ },
+ {
+  "account_name": "phone",
+  "password": "]yHt=@g"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "LddQFtz"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "wnS&0mf"
+ },
+ {
+  "account_name": "spotify",
+  "password": "qMQyD0J"
+ },
+ {
+  "account_name": "todoist",
+  "password": "z-t#QLC"
+ },
+ {
+  "account
+--- Step 5 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='simple_note', api_name='login'))
+Output: {
+ "app_name": "simple_note",
+ "api_name": "login",
+ "path": "/simple_note/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schem
+--- Step 6 ---
+Code:
+simple_note_login = apis.simple_note.login(username="ch.brow@gmail.com", password="LddQFtz")
+print(simple_note_login)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaW1wbGVfbm90ZStjaC5icm93QGdtYWlsLmNvbSIsImV4cCI6MTY4NDkyMTgzN30.WX7ROMOYlemcvDl4NaGDiemO1pELL-m7d1TmGQWdylA",
+ "token_type": "Bearer"
+}
+
+--- Step 7 ---
+Code:
+simple_note_token = simple_note_login['access_token']
+notes = apis.simple_note.search_notes(access_token=simple_note_token, query="workout")
+print(notes)
+Output: [
+ {
+  "note_id": 2560,
+  "title": "Habit Tracking Log for 2023-05-07",
+  "tags": [
+   "habit-tracker"
+  ],
+  "created_at": "2023-05-07T22:12:25",
+  "updated_at": "2023-05-07T22:12:25",
+  "pinned": true
+ },
+ {
+  "note_id": 2561,
+  "title": "Habit Tracking Log for 2023-05-06",
+  "tags": [
+   "habit-tracker"
+  ],
+  "created_at": "2023-05-06T21:46:14",
+  "updated_at": "2023-05-06T21:46:14",
+  "pinned": true
+ },
+ {
+  "note_id": 2562,
+  "title": "Habit Tracking Log for 2023-05-05",
+  "tags": [
+   "ha
+--- Step 8 ---
+Code:
+apis.api_docs.show_api_doc(app_name='simple_note', api_name='show_note')
+Output: Execution successful.
+--- Step 9 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='simple_note', api_name='show_note'))
+Output: {
+ "app_name": "simple_note",
+ "api_name": "show_note",
+ "path": "/simple_note/notes/{note_id}",
+ "method": "GET",
+ "description": "Show detailed information of a note, including its content.",
+ "parameters": [
+  {
+   "name": "note_id",
+   "type": "integer",
+   "required": true,
+   "description": "ID of the note to be shown.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from simple
+--- Step 10 ---
+Code:
+exercise_plan = apis.simple_note.show_note(note_id=2544, access_token=simple_note_token)
+print(exercise_plan)
+Output: {
+ "note_id": 2544,
+ "title": "Exercise Plan",
+ "content": "# Weekly Workout Plan\n\nday: monday\nexercises:\n- Warm-up - 5 minutes of jumping jacks\n- Barbell squats - 4 sets of 8 reps\n- Bench press - 4 sets of 6 reps\n- Bent-over rows - 3 sets of 10 reps\n- Plank - Hold for 1 minute\n- Cool-down - 10 minutes of flexibility exercises\nduration_mins: 35\n\nday: tuesday\nexercises:\n- Warm-up - 10 minutes of brisk walking\n- Cycling - 45 minutes at a moderate pace\n- Bodyweight lunges - 3 sets o
+--- Step 11 ---
+Code:
+from datetime import datetime
+today = datetime.now().strftime('%A').lower()
+print("Today is:", today)
+
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: Today is: wednesday
+[
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "nam
+--- Step 12 ---
+Code:
+spotify_login = apis.spotify.login(username="ch.brow@gmail.com", password="qMQyD0J")
+print(spotify_login)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2NoLmJyb3dAZ21haWwuY29tIiwiZXhwIjoxNjg0OTIyNDgwfQ.n_qxEFFzR1tbi1WouGuzKiC0Kyg8CphxBOq7BAmjjGw",
+ "token_type": "Bearer"
+}
+
+--- Step 13 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist_library",
+ "path": "/spotify/library/playlists",
+ "method": "GET",
+ "description": "Search or show a list of playlists in your playlist library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search
+--- Step 14 ---
+Code:
+spotify_token = spotify_login['access_token']
+playlists = apis.spotify.show_playlist_library(access_token=spotify_token, page_limit=20)
+print(playlists)
+Output: [
+ {
+  "playlist_id": 542,
+  "title": "Yesteryear Yule: Vintage Christmas",
+  "is_public": false,
+  "rating": 0.0,
+  "like_count": 0,
+  "review_count": 0,
+  "owner": {
+   "name": "Chad Brown",
+   "email": "ch.brow@gmail.com"
+  },
+  "created_at": "2023-04-10T08:15:15",
+  "song_ids": [
+   26,
+   43,
+   95,
+   107,
+   112,
+   132,
+   135,
+   150,
+   157,
+   174,
+   204,
+   246,
+   280
+  ]
+ },
+ {
+  "playlist_id": 546,
+  "title": "Cosplay Cadence: Fandom Anthems",
+  "is_public": false,
+  "rating": 0.
+--- Step 15 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist",
+ "path": "/spotify/playlists/{playlist_id}",
+ "method": "GET",
+ "description": "Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.",
+ "parameters": [
+  {
+   "name": "playlist_id",
+   "type": "integer",
+   "required": true,
+   "description": "The playlist id to retrieve.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+--- Step 16 ---
+Code:
+details = apis.spotify.show_playlist(playlist_id=542, access_token=spotify_token)
+print(details['songs'][0])
+Output: {
+ "id": 26,
+ "title": "In the Light of Dying Stars",
+ "album_id": 5,
+ "album_title": "Velvet Shadows",
+ "duration": 206,
+ "artists": [
+  {
+   "id": 32,
+   "name": "Lucas Grey"
+  },
+  {
+   "id": 25,
+   "name": "Velvet Echo"
+  }
+ ]
+}
+
+--- Step 17 ---
+Code:
+total_durations = {}
+for p in playlists:
+    details = apis.spotify.show_playlist(playlist_id=p['playlist_id'], access_token=spotify_token)
+    total_duration = sum(song['duration'] for song in details['songs'])
+    total_durations[p['playlist_id']] = {
+        'title': details['title'],
+        'total_duration_mins': total_duration / 60
+    }
+print(total_durations)
+Output: {
+ "542": {
+  "title": "Yesteryear Yule: Vintage Christmas",
+  "total_duration_mins": 48.733333333333334
+ },
+ "546": {
+  "title": "Cosplay Cadence: Fandom Anthems",
+  "total_duration_mins": 33.483333333333334
+ },
+ "544": {
+  "title": "Disco Inferno: Feverish Beats",
+  "total_duration_mins": 31.266666666666666
+ },
+ "541": {
+  "title": "Intergalactic Anthems: Sci-Fi Songs",
+  "total_duration_mins": 32.28333333333333
+ },
+ "540": {
+  "title": "String Serenade: Violin & Cello",
+  "total_duration_mins
+--- Step 18 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='play_music'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "play_music",
+ "path": "/spotify/music_player/play",
+ "method": "POST",
+ "description": "Play music based on various criteria. You can pass, at most, any one of queue_position, song_id, album_id or playlist_id. If one of song_id, album_id or playlist_id is passed, that song, album or playlist will be added to the queue and played. Otherwise, the queue will remain unchanged. If queue_position is passed, the song at that position in the queue will be played. 
+--- Step 19 ---
+Code:
+apis.spotify.play_music(access_token=spotify_token, playlist_id=542)
+Output: Execution successful.
+--- Step 20 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 20!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert music_player in the end state is in the playing state.
+[1;32m>> Passed Requirement[0m
+assert the music_player's queue_songs' total duration in the end state
+is >= data.private.workout_duration_mins.
+[1;32m>> Passed Requirement[0m
+assert the set music_player's queue_songs' song_ids in the end state
+match set of private_data.long_enough_playlist_song_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert music_player in the end state is in the playing state.
+[1;32m>> Passed Requirement[0m
+assert the music_player's queue_songs' total duration in the end state
+is >= data.private.workout_duration_mins.
+[1;32m>> Passed Requirement[0m
+assert the set music_player's queue_songs' song_ids in the end state
+match set of private_data.long_enough_playlist_song_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

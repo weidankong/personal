@@ -1,0 +1,180 @@
+
+============================================================
+Task ID: 82e2fac_3
+Supervisor: Paul Miller
+Instruction: What is the title of the most-played song in my Spotify album library.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_album_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_album_library",
+ "path": "/spotify/library/albums",
+ "method": "GET",
+ "description": "Search or show a list of albums in your album library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query strin
+--- Step 3 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p["password"] for p in passwords if p["account_name"] == "spotify"][0]
+print("Password:", spotify_password)
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: Password: !T}r*b7
+{
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "resp
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username="paul_mill@gmail.com", password="!T}r*b7")
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K3BhdWxfbWlsbEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.UM0pcHukOwakLXXB210MBIXmSvUfZhoIMtrvYP3rcUU",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_response["access_token"]
+albums_page_0 = apis.spotify.show_album_library(access_token=access_token, page_limit=20)
+print("Albums page 0:", albums_page_0)
+print("Song privates doc:", apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_privates'))
+Output: Albums page 0: [{'album_id': 16, 'title': 'Electric Dreamscape', 'genre': 'rock', 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}], 'rating': 3.8, 'like_count': 32, 'review_count': 16, 'release_date': '2022-08-02T08:03:50', 'song_ids': [74, 75, 76], 'added_at': '2023-05-16T23:36:46'}, {'album_id': 18, 'title': 'Echoes of Eternity', 'genre': 'classical', 'artists': [{'id': 33, 'name': 'Felix Blackwood'}], 'rating': 3.7, 'like_count': 37, 'review_count': 21, 'release_d
+--- Step 6 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song",
+ "path": "/spotify/songs/{song_id}",
+ "method": "GET",
+ "description": "Get details of a specific song.",
+ "parameters": [
+  {
+   "name": "song_id",
+   "type": "integer",
+   "required": true,
+   "description": "The song id to retrieve.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "album_title": "string",
+   "duration": 1,
+   "artists": [
+    
+--- Step 7 ---
+Code:
+song_ids = []
+for album in albums_page_0:
+    song_ids.extend(album['song_ids'])
+
+songs_data = []
+for sid in song_ids:
+    song_info = apis.spotify.show_song(song_id=sid)
+    songs_data.append(song_info)
+
+most_played_song = max(songs_data, key=lambda x: x['play_count'])
+print("Most played song title:", most_played_song['title'])
+print("Play count:", most_played_song['play_count'])
+Output: Most played song title: Wandering the Streets Alone
+Play count: 863
+
+--- Step 8 ---
+Code:
+apis.supervisor.complete_task(answer="Wandering the Streets Alone")
+Output: Execution successful.
+
+Task completed at step 8!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

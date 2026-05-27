@@ -1,0 +1,221 @@
+
+============================================================
+Task ID: 6bdbc26_3
+Supervisor: Grant Martinez
+Instruction: How many people follow the artist of the currently playing song on Spotify?
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_current_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_current_song",
+ "path": "/spotify/music_player/current_song",
+ "method": "GET",
+ "description": "Show details of the current song on the queue.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "albu
+--- Step 3 ---
+Code:
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "E*M5dwK"
+ },
+ {
+  "account_name": "file_system",
+  "password": "B94nmQx"
+ },
+ {
+  "account_name": "gmail",
+  "password": "(M(U5+U"
+ },
+ {
+  "account_name": "phone",
+  "password": "U@_YDhv"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "9J2X8Ow"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "KpcWKQS"
+ },
+ {
+  "account_name": "spotify",
+  "password": "j841H&Y"
+ },
+ {
+  "account_name": "todoist",
+  "password": "HO%SEXj"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 5 ---
+Code:
+access_token = apis.spotify.login(username='gra-martinez@gmail.com', password='j841H&Y')['access_token']
+print(access_token)
+Output: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2dyYS1tYXJ0aW5lekBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.LI0ooernffDtR--_XmNWGIlCvKpNDTn17pglkAI-q1k
+
+--- Step 6 ---
+Code:
+current_song = apis.spotify.show_current_song(access_token=access_token)
+print(current_song)
+Output: {
+ "song_id": 148,
+ "title": "Dancing on the Precipice of Love",
+ "album_id": null,
+ "album_title": null,
+ "duration": 244,
+ "artists": [
+  {
+   "id": 11,
+   "name": "Eliana Harper"
+  }
+ ],
+ "played_seconds": 0,
+ "is_playing": true,
+ "is_looping": false
+}
+
+--- Step 7 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_artist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_artist",
+ "path": "/spotify/artists/{artist_id}",
+ "method": "GET",
+ "description": "Get details of a specific artist.",
+ "parameters": [
+  {
+   "name": "artist_id",
+   "type": "integer",
+   "required": true,
+   "description": "The artist id to retrieve.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "artist_id": 1,
+   "name": "string",
+   "genre": "string",
+   "follower_count": 1,
+   "created_at": "2019-01
+--- Step 8 ---
+Code:
+artist_details = apis.spotify.show_artist(artist_id=11)
+print(artist_details)
+Output: {
+ "artist_id": 11,
+ "name": "Eliana Harper",
+ "genre": "hip-hop",
+ "follower_count": 28,
+ "created_at": "2018-07-27T14:32:44"
+}
+
+--- Step 9 ---
+Code:
+apis.supervisor.complete_task(answer=28)
+Output: Execution successful.
+
+Task completed at step 9!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

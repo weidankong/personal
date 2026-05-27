@@ -157,7 +157,7 @@ def call_llm(messages: list) -> str:
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     resp = client.chat.completions.create(
-        model="qwen-max",
+        model="qwen3.7-max",
         messages=messages,
         temperature=0.0,
         max_tokens=4096,
@@ -186,26 +186,46 @@ def build_messages(task) -> list[dict]:
     return messages
 
 
-def run_single_case(task_id: str = None, experiment_name: str = "minimal_react_agent"):
-    if task_id is None:
-        task_ids = load_task_ids("train")
-        task_id = task_ids[0]
-        print(f"No task_id specified, using first train task: {task_id}")
+def run_single_case(task_id: str, experiment_name: str = "minimal_react_agent"):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_dir = os.path.join(base_dir, "outputs", "raw")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"{task_id}.txt")
+
+    if os.path.exists(output_path):
+        print(f"[{task_id}] Already exists, skipping.")
+        return
 
     world = AppWorld(task_id=task_id, experiment_name=experiment_name)
 
-    print(f"\n{'='*60}")
-    print(f"Task ID: {task_id}")
-    sup = world.task.supervisor
-    print(f"Supervisor: {sup['first_name']} {sup['last_name']}")
-    print(f"Instruction: {world.task.instruction}")
-    print(f"{'='*60}\n")
+    from io import StringIO
+    captured = StringIO()
+    original_stdout = sys.stdout
 
-    MAX_STEPS = 50
-    messages = build_messages(world.task)
-    output: str | None = None
+    class Tee:
+        def __init__(self, *streams):
+            self.streams = streams
+        def write(self, data):
+            for s in self.streams:
+                s.write(data)
+        def flush(self):
+            for s in self.streams:
+                s.flush()
+
+    sys.stdout = Tee(original_stdout, captured)
 
     try:
+        print(f"\n{'='*60}")
+        print(f"Task ID: {task_id}")
+        sup = world.task.supervisor
+        print(f"Supervisor: {sup['first_name']} {sup['last_name']}")
+        print(f"Instruction: {world.task.instruction}")
+        print(f"{'='*60}\n")
+
+        MAX_STEPS = 30
+        messages = build_messages(world.task)
+        output: str | None = None
+
         for step in range(MAX_STEPS):
             code = call_llm(messages)
             messages.append({"role": "assistant", "content": code})
@@ -227,8 +247,26 @@ def run_single_case(task_id: str = None, experiment_name: str = "minimal_react_a
         print(report)
 
     finally:
+        sys.stdout = original_stdout
+        with open(output_path, "w") as f:
+            f.write(captured.getvalue())
+        print(f"[{task_id}] Output saved to {output_path}")
         world.close()
 
 
+def read_cases():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cases_file = os.path.join(base_dir, "cases.txt")
+    cases = []
+    with open(cases_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            cases.append(line)
+    return cases
+
+
 if __name__ == "__main__":
-    run_single_case(task_id='042a9fc_1')
+    for task_id in read_cases():
+        run_single_case(task_id=task_id)

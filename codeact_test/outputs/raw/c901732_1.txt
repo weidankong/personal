@@ -1,0 +1,312 @@
+
+============================================================
+Task ID: c901732_1
+Supervisor: Joyce Weaver
+Instruction: Play the least listened to song on Spotify from the Echo Chamber Chronicles album.
+============================================================
+
+--- Step 1 ---
+Code:
+# Let's first see what APIs are available in the spotify app.
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='search_albums'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "search_albums",
+ "path": "/spotify/albums",
+ "method": "GET",
+ "description": "Search for albums with a query.",
+ "parameters": [
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+   "default": "",
+   "constraints": []
+  },
+  {
+   "name": "min_rating",
+   "type": "number",
+   "required": false,
+   "description": "The minimum rating for search results.",
+   "default": 0.0,
+   "constraints": [
+  
+--- Step 3 ---
+Code:
+print(apis.spotify.search_albums(query="Echo Chamber Chronicles"))
+Output: [
+ {
+  "album_id": 1,
+  "title": "Echo Chamber Chronicles",
+  "genre": "EDM",
+  "artists": [
+   {
+    "id": 3,
+    "name": "Jasper Skye"
+   },
+   {
+    "id": 26,
+    "name": "Isabella Cruz"
+   },
+   {
+    "id": 6,
+    "name": "Seraphina Dawn"
+   }
+  ],
+  "rating": 3.2,
+  "like_count": 34,
+  "review_count": 12,
+  "release_date": "2022-10-29T01:54:53",
+  "song_ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ {
+  "album_id": 4,
+  "title": "Neon Echoes",
+  "genre": "indie",
+  "artists": [
+ 
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song",
+ "path": "/spotify/songs/{song_id}",
+ "method": "GET",
+ "description": "Get details of a specific song.",
+ "parameters": [
+  {
+   "name": "song_id",
+   "type": "integer",
+   "required": true,
+   "description": "The song id to retrieve.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "album_title": "string",
+   "duration": 1,
+   "artists": [
+    
+--- Step 5 ---
+Code:
+# Let's get the details of all songs in the "Echo Chamber Chronicles" album to find their play counts.
+song_ids = [1, 2, 3, 4, 5, 6, 7]
+songs = []
+for sid in song_ids:
+    song = apis.spotify.show_song(song_id=sid)
+    songs.append(song)
+print(songs)
+Output: [
+ {
+  "song_id": 1,
+  "title": "Painting Shadows on the Wall",
+  "album_id": 1,
+  "album_title": "Echo Chamber Chronicles",
+  "duration": 217,
+  "artists": [
+   {
+    "id": 3,
+    "name": "Jasper Skye",
+    "genre": "EDM",
+    "follower_count": 23
+   },
+   {
+    "id": 26,
+    "name": "Isabella Cruz",
+    "genre": "EDM",
+    "follower_count": 14
+   },
+   {
+    "id": 6,
+    "name": "Seraphina Dawn",
+    "genre": "EDM",
+    "follower_count": 15
+   }
+  ],
+  "release_date": "2022-10-29T01:54:53",
+  
+--- Step 6 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='play_music'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "play_music",
+ "path": "/spotify/music_player/play",
+ "method": "POST",
+ "description": "Play music based on various criteria. You can pass, at most, any one of queue_position, song_id, album_id or playlist_id. If one of song_id, album_id or playlist_id is passed, that song, album or playlist will be added to the queue and played. Otherwise, the queue will remain unchanged. If queue_position is passed, the song at that position in the queue will be played. 
+--- Step 7 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 8 ---
+Code:
+# I need to log in to Spotify to play the song. First, let's get the account passwords from the supervisor app to find the Spotify password.
+print(apis.supervisor.show_account_passwords())
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "FJRd9=B"
+ },
+ {
+  "account_name": "file_system",
+  "password": "DqE8={8"
+ },
+ {
+  "account_name": "gmail",
+  "password": "r^2p&]H"
+ },
+ {
+  "account_name": "phone",
+  "password": "QAEZ+BF"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "RluCyXn"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "u4uIy!w"
+ },
+ {
+  "account_name": "spotify",
+  "password": "qge1k1L"
+ },
+ {
+  "account_name": "todoist",
+  "password": "&Jf9F11"
+ },
+ {
+  "account
+--- Step 9 ---
+Code:
+# I need to log in to Spotify to play the song. The least listened to song from the album is "Lost in the Mists of Time" with song_id 2 (play_count: 205). Let's log in first.
+access_token_response = apis.spotify.login(username="joyce-weav@gmail.com", password="qge1k1L")
+print(access_token_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2pveWNlLXdlYXZAZ21haWwuY29tIiwiZXhwIjoxNjg0NDEyMDk4fQ.-4SESAodmQQZXj1xkfwFIRI1EUfc2rL_fGELgWkJlXg",
+ "token_type": "Bearer"
+}
+
+--- Step 10 ---
+Code:
+# Now I will play the least listened to song, which is "Lost in the Mists of Time" (song_id: 2, play_count: 205).
+access_token = access_token_response["access_token"]
+play_response = apis.spotify.play_music(access_token=access_token, song_id=2)
+print(play_response)
+Output: {"message": "Song (Lost in the Mists of Time) is now playing.", "song_id": 2}
+
+--- Step 11 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 11!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching private_data.least_or_most_played_song_id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching private_data.least_or_most_played_song_id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

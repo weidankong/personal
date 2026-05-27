@@ -1,0 +1,194 @@
+
+============================================================
+Task ID: e7a10f8_3
+Supervisor: Isaac Miller
+Instruction: How long is my longest Spotify playlist, in minutes, rounded to the nearest number?
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist_library",
+ "path": "/spotify/library/playlists",
+ "method": "GET",
+ "description": "Search or show a list of playlists in your playlist library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search
+--- Step 3 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+login_doc = apis.api_docs.show_api_doc(app_name='spotify', api_name='login')
+print("Passwords:", passwords)
+print("Login Doc:", login_doc)
+Output: Passwords: [{'account_name': 'amazon', 'password': '_-HyQLP'}, {'account_name': 'file_system', 'password': 'Zgz6UCy'}, {'account_name': 'gmail', 'password': '263dL(a'}, {'account_name': 'phone', 'password': '(vJhcH4'}, {'account_name': 'simple_note', 'password': '5s0Q2-t'}, {'account_name': 'splitwise', 'password': 'v53{TS3'}, {'account_name': 'spotify', 'password': '_u(r]7K'}, {'account_name': 'todoist', 'password': 'f#j(b%V'}, {'account_name': 'venmo', 'password': '3vZR_h6'}]
+Login Doc: {'app_
+--- Step 4 ---
+Code:
+spotify_password = '_u(r]7K'
+email = 'ismill@gmail.com'
+login_response = apis.spotify.login(username=email, password=spotify_password)
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2lzbWlsbEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.c7dF06yfqSznxBs1RYX8lrmQI3UcTSJF_xXxzpDsRUQ",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist",
+ "path": "/spotify/playlists/{playlist_id}",
+ "method": "GET",
+ "description": "Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.",
+ "parameters": [
+  {
+   "name": "playlist_id",
+   "type": "integer",
+   "required": true,
+   "description": "The playlist id to retrieve.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+--- Step 6 ---
+Code:
+access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2lzbWlsbEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.c7dF06yfqSznxBs1RYX8lrmQI3UcTSJF_xXxzpDsRUQ"
+all_playlists = []
+page_index = 0
+while True:
+    res = apis.spotify.show_playlist_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not res:
+        break
+    all_playlists.extend(res)
+    if len(res) < 20:
+        break
+    page_index += 1
+
+print(f"Total playlists: {len(all_playlists)}")
+if all_playlists:
+    print(all_playlists[0])
+Output: Total playlists: 6
+{
+ "playlist_id": 128,
+ "title": "Heartbreak Hotel: Songs of Sorrow",
+ "is_public": false,
+ "rating": 0.0,
+ "like_count": 1,
+ "review_count": 0,
+ "owner": {
+  "name": "Isaac Miller",
+  "email": "ismill@gmail.com"
+ },
+ "created_at": "2023-04-23T16:43:04",
+ "song_ids": [
+  135,
+  162,
+  274,
+  293,
+  310
+ ]
+}
+
+--- Step 7 ---
+Code:
+max_duration = 0
+longest_playlist_title = ""
+for p in all_playlists:
+    details = apis.spotify.show_playlist(playlist_id=p['playlist_id'], access_token=access_token)
+    total_duration = sum(song['duration'] for song in details.get('songs', []))
+    print(f"Playlist: {details['title']}, Songs: {len(details.get('songs', []))}, Total duration: {total_duration}")
+    if total_duration > max_duration:
+        max_duration = total_duration
+        longest_playlist_title = details['title']
+
+print(f"Longest: {longest_playlist_title}, Duration: {max_duration}")
+Output: Playlist: Heartbreak Hotel: Songs of Sorrow, Songs: 5, Total duration: 1263
+Playlist: Bollywood Beats: Desi Dance Off, Songs: 5, Total duration: 1282
+Playlist: Eco Tunes: Songs for Planet Earth, Songs: 8, Total duration: 1964
+Playlist: Lunar Lullabies: Sleep Aid, Songs: 5, Total duration: 1206
+Playlist: Harmonic Horizons: Indie & Alternative, Songs: 5, Total duration: 1323
+Playlist: Groovy Gardens: Botanical Beats, Songs: 5, Total duration: 1079
+Longest: Eco Tunes: Songs for Planet Earth, Durati
+--- Step 8 ---
+Code:
+# The duration is likely in seconds, as 1964 seconds for 8 songs is about 32.7 minutes, which makes sense.
+# Let's convert the max duration from seconds to minutes and round to the nearest number.
+longest_duration_seconds = 1964
+longest_duration_minutes = round(longest_duration_seconds / 60)
+print(longest_duration_minutes)
+
+# Complete the task with the calculated answer.
+apis.supervisor.complete_task(answer=longest_duration_minutes)
+Output: 33
+
+
+Task completed at step 8!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m2[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m2[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert no model changes.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

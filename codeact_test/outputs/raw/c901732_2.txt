@@ -1,0 +1,263 @@
+
+============================================================
+Task ID: c901732_2
+Supervisor: Susan Burton
+Instruction: Play the most listened to song on Spotify from my Woodstock Reimagined: Festival Vibes playlist.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_playlist_library",
+ "path": "/spotify/library/playlists",
+ "method": "GET",
+ "description": "Search or show a list of playlists in your playlist library.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search
+--- Step 3 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+print(passwords)
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "Gt$!_*W"
+ },
+ {
+  "account_name": "file_system",
+  "password": "8nNw!jZ"
+ },
+ {
+  "account_name": "gmail",
+  "password": "qu4Y7}s"
+ },
+ {
+  "account_name": "phone",
+  "password": "C4n&I40"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "e+QwbmV"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "mSqG}QU"
+ },
+ {
+  "account_name": "spotify",
+  "password": "%CCvl8v"
+ },
+ {
+  "account_name": "todoist",
+  "password": "jHZ#RPM"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username='susanmiller@gmail.com', password='%CCvl8v')
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K3N1c2FubWlsbGVyQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.m4wB6arhYsGO1RMQZ2J0nULg2azl89U0vwa-3BYhWno",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_response['access_token']
+playlists = apis.spotify.show_playlist_library(access_token=access_token, query='Woodstock Reimagined: Festival Vibes')
+print(playlists)
+Output: [
+ {
+  "playlist_id": 143,
+  "title": "Woodstock Reimagined: Festival Vibes",
+  "is_public": true,
+  "rating": 4.0,
+  "like_count": 1,
+  "review_count": 1,
+  "owner": {
+   "name": "Susan Burton",
+   "email": "susanmiller@gmail.com"
+  },
+  "created_at": "2023-04-03T21:43:40",
+  "song_ids": [
+   42,
+   121,
+   165,
+   180,
+   189,
+   212,
+   224,
+   251,
+   283,
+   300
+  ]
+ },
+ {
+  "playlist_id": 144,
+  "title": "Midweek Motivation: Hump Day Hits",
+  "is_public": true,
+  "rating": 5.0,
+  "like_cou
+--- Step 6 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_privates'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_privates",
+ "path": "/spotify/songs/{song_id}/privates",
+ "method": "GET",
+ "description": "Show information about the song that is private to the user.",
+ "parameters": [
+  {
+   "name": "song_id",
+   "type": "integer",
+   "required": true,
+   "description": "The song id to retrieve.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained fro
+--- Step 7 ---
+Code:
+song_ids = [42, 121, 165, 180, 189, 212, 224, 251, 283, 300]
+songs = []
+for sid in song_ids:
+    song = apis.spotify.show_song(song_id=sid)
+    songs.append(song)
+    
+most_listened_song = max(songs, key=lambda x: x['play_count'])
+print(most_listened_song)
+Output: {
+ "song_id": 180,
+ "title": "The Intricacies of a Broken Heart",
+ "album_id": null,
+ "album_title": null,
+ "duration": 244,
+ "artists": [
+  {
+   "id": 16,
+   "name": "Apollo Serenade",
+   "genre": "R&B",
+   "follower_count": 22
+  }
+ ],
+ "release_date": "2020-03-18T06:42:47",
+ "genre": "R&B",
+ "play_count": 851,
+ "rating": 4.0,
+ "like_count": 5,
+ "review_count": 1,
+ "shareable_link": "https://spotify.com/songs/180"
+}
+
+--- Step 8 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='play_music'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "play_music",
+ "path": "/spotify/music_player/play",
+ "method": "POST",
+ "description": "Play music based on various criteria. You can pass, at most, any one of queue_position, song_id, album_id or playlist_id. If one of song_id, album_id or playlist_id is passed, that song, album or playlist will be added to the queue and played. Otherwise, the queue will remain unchanged. If queue_position is passed, the song at that position in the queue will be played. 
+--- Step 9 ---
+Code:
+play_response = apis.spotify.play_music(access_token=access_token, song_id=180)
+print(play_response)
+Output: {"message": "Song (The Intricacies of a Broken Heart) is now playing.", "song_id": 180}
+
+--- Step 10 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 10!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching private_data.least_or_most_played_song_id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching private_data.least_or_most_played_song_id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

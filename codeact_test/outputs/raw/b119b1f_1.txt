@@ -1,0 +1,175 @@
+
+============================================================
+Task ID: b119b1f_1
+Supervisor: Miranda Weber
+Instruction: Keep going to the previous song on Spotify until you reach a song by Luna Starlight.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_current_song'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='previous_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_current_song",
+ "path": "/spotify/music_player/current_song",
+ "method": "GET",
+ "description": "Show details of the current song on the queue.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": {
+   "song_id": 1,
+   "title": "string",
+   "album_id": 1,
+   "albu
+--- Step 3 ---
+Code:
+# Get passwords and login API doc
+print(apis.supervisor.show_account_passwords())
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: [
+ {
+  "account_name": "amazon",
+  "password": "S2cF8jb"
+ },
+ {
+  "account_name": "file_system",
+  "password": "8b#*M(p"
+ },
+ {
+  "account_name": "gmail",
+  "password": "LJM$+_T"
+ },
+ {
+  "account_name": "phone",
+  "password": "Moh6kk1"
+ },
+ {
+  "account_name": "simple_note",
+  "password": "cVcCNZn"
+ },
+ {
+  "account_name": "splitwise",
+  "password": "9IF1znN"
+ },
+ {
+  "account_name": "spotify",
+  "password": "^Z0F4hT"
+ },
+ {
+  "account_name": "todoist",
+  "password": "R1jS7#j"
+ },
+ {
+  "account
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username='mir-powe@gmail.com', password='^Z0F4hT')
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K21pci1wb3dlQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.vG33TLWlgHBVQDNd0XMjWqXDZT3YM7LqCtdSbdMeqV8",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_response['access_token']
+for i in range(100):
+    current_song = apis.spotify.show_current_song(access_token=access_token)
+    artists = [artist['name'] for artist in current_song.get('artists', [])]
+    print(f"Current song: {current_song.get('title')} by {artists}")
+    if 'Luna Starlight' in artists:
+        print("Found Luna Starlight!")
+        break
+    apis.spotify.previous_song(access_token=access_token)
+Output: Current song: The Fragile Web of Destiny by ['Emily Rivers']
+Current song: The Last Dance of Summer by ['Marigold Muse']
+Current song: Fading Like a Distant Star by ['Hazel Winter']
+Current song: Cursed Love by ['Zoey James']
+Current song: Siren's Call by ['Luna Starlight']
+Found Luna Starlight!
+
+--- Step 6 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 6!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert spotify.MusicPlayer has [1;36m1[0m updated using models.changed_records
+[1;32m>> Passed Requirement[0m
+assert this music player record has updated only in the cursor_position
+using models.changed_field_names
+[1;32m>> Passed Requirement[0m
+assert the currently playing song has ID private_data.song_id in the end state.
+[1;32m>> Passed Requirement[0m
+assert music player's cursor is on the song by private_data.artist_id in the end state.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+assert spotify.MusicPlayer has [1;36m1[0m updated using models.changed_records
+[1;32m>> Passed Requirement[0m
+assert this music player record has updated only in the cursor_position
+using models.changed_field_names
+[1;32m>> Passed Requirement[0m
+assert the currently playing song has ID private_data.song_id in the end state.
+[1;32m>> Passed Requirement[0m
+assert music player's cursor is on the song by private_data.artist_id in the end state.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

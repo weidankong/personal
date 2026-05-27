@@ -1,0 +1,195 @@
+
+============================================================
+Task ID: 07b42fd_1
+Supervisor: Erica Wilson
+Instruction: Follow all the classical artists on Spotify that have at least 22 followers.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='search_artists'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "search_artists",
+ "path": "/spotify/artists",
+ "method": "GET",
+ "description": "Search for artists with a query.",
+ "parameters": [
+  {
+   "name": "query",
+   "type": "string",
+   "required": false,
+   "description": "The search query string.",
+   "default": "",
+   "constraints": []
+  },
+  {
+   "name": "genre",
+   "type": "string",
+   "required": false,
+   "description": "The genre to filter the artists by.",
+   "default": null,
+   "constraints": []
+  },
+
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='follow_artist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "follow_artist",
+ "path": "/spotify/following_artists/{artist_id}",
+ "method": "POST",
+ "description": "Follow an artist.",
+ "parameters": [
+  {
+   "name": "artist_id",
+   "type": "integer",
+   "required": true,
+   "description": "The artist id to follow.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": nul
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 5 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p for p in passwords if p["account_name"] == "spotify"][0]["password"]
+print(spotify_password)
+Output: IXSwolL
+
+--- Step 6 ---
+Code:
+login_response = apis.spotify.login(username="eri_powe@gmail.com", password="IXSwolL")
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2VyaV9wb3dlQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0._rf8__dV4TpIqH9G7bsomESGf0HrUBa_zORTmv0bKHg",
+ "token_type": "Bearer"
+}
+
+--- Step 7 ---
+Code:
+# Let's search for classical artists with at least 22 followers and see the results.
+artists_page_0 = apis.spotify.search_artists(genre="classical", min_follower_count=22, page_index=0, page_limit=20)
+print(artists_page_0)
+Output: [
+ {
+  "artist_id": 14,
+  "name": "Grace Harrison",
+  "genre": "classical",
+  "follower_count": 22,
+  "created_at": "2018-06-02T06:48:30"
+ }
+]
+
+--- Step 8 ---
+Code:
+follow_response = apis.spotify.follow_artist(artist_id=14, access_token=login_response["access_token"])
+print(follow_response)
+Output: {"message": "Artist followed."}
+
+--- Step 9 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 9!
+[92m──────────────────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ─────────────────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m──────────────────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.ArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, _, removed spotify.ArtistFollowing records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all artists from added artist follows are of public_data.genre genre.
+[1;32m>> Passed Requirement[0m
+assert all artists from added artist follows have >= public_data.min_followers followers.
+[92m──────────────────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ─────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m──────────────────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ─────────────────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m──────────────────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.ArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, _, removed spotify.ArtistFollowing records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all artists from added artist follows are of public_data.genre genre.
+[1;32m>> Passed Requirement[0m
+assert all artists from added artist follows have >= public_data.min_followers followers.
+[92m──────────────────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ─────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

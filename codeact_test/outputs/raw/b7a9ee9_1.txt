@@ -1,0 +1,171 @@
+
+============================================================
+Task ID: b7a9ee9_1
+Supervisor: Jason Simpson
+Instruction: Follow all artists of all classical-genre songs in any of my playlists on Spotify.
+============================================================
+
+--- Step 1 ---
+Code:
+# Let's see what APIs are available for Spotify.
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print("show_playlist_library:", apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist_library'))
+print("show_playlist:", apis.api_docs.show_api_doc(app_name='spotify', api_name='show_playlist'))
+print("show_song:", apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+print("follow_artist:", apis.api_docs.show_api_doc(app_name='spotify', api_name='follow_artist'))
+print("show_genres:", apis.api_docs.show_api_doc(app_name='spotify', api_name='show_genres'))
+Output: show_playlist_library: {'app_name': 'spotify', 'api_name': 'show_playlist_library', 'path': '/spotify/library/playlists', 'method': 'GET', 'description': 'Search or show a list of playlists in your playlist library.', 'parameters': [{'name': 'access_token', 'type': 'string', 'required': True, 'description': 'Access token obtained from spotify app login.', 'default': None, 'constraints': []}, {'name': 'query', 'type': 'string', 'required': False, 'description': 'The search query string.', 'defaul
+--- Step 3 ---
+Code:
+# Get the Spotify password from the supervisor app
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p for p in passwords if p["account_name"] == "spotify"][0]["password"]
+print("Spotify password:", spotify_password)
+
+# Log in to Spotify
+login_response = apis.spotify.login(email="jasonsimp@gmail.com", password=spotify_password)
+print("Login response:", login_response)
+Output: Execution failed. Traceback:
+  File "<python-input>", line 7, in <module>
+    login_response = apis.spotify.login(email="jasonsimp@gmail.com", password=spotify_password)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Exception: Unexpected parameter 'email' passed to the login API of the spotify app. Allowed parameters are: ['username', 'password']
+--- Step 4 ---
+Code:
+login_response = apis.spotify.login(username="jasonsimp@gmail.com", password=spotify_password)
+print(login_response)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2phc29uc2ltcEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.x6X7-XCQ1YvS9_rs89G2soshA6EtuqGTMhFb-jJUSrU",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_response["access_token"]
+playlists = []
+page_index = 0
+while True:
+    res = apis.spotify.show_playlist_library(access_token=access_token, page_index=page_index, page_limit=20)
+    if not res:
+        break
+    playlists.extend(res)
+    if len(res) < 20:
+        break
+    page_index += 1
+print(f"Found {len(playlists)} playlists.")
+for p in playlists:
+    print(p['playlist_id'], p['title'])
+Output: Found 8 playlists.
+366 Indie Unearthed: Hidden Gems
+365 Ethereal Escapes: Ambient Grooves
+371 Midweek Motivation: Hump Day Hits
+370 Quarantine Quirks: Pandemic Playlist
+369 Bollywood Beats: Desi Dance Off
+368 Celtic Mysteries: Folk & Fantasy
+367 Cocktail Hour: Lounge Classics
+372 Mystic Moods: New Age Relaxation
+
+--- Step 6 ---
+Code:
+all_song_ids = set()
+for p in playlists:
+    playlist_details = apis.spotify.show_playlist(playlist_id=p['playlist_id'], access_token=access_token)
+    for song in playlist_details.get('songs', []):
+        all_song_ids.add(song['id'])
+print(f"Total unique songs across all playlists: {len(all_song_ids)}")
+Output: Total unique songs across all playlists: 53
+
+--- Step 7 ---
+Code:
+classical_artist_ids = set()
+for song_id in all_song_ids:
+    song_details = apis.spotify.show_song(song_id=song_id)
+    if song_details.get('genre', '').lower() == 'classical':
+        for artist in song_details.get('artists', []):
+            classical_artist_ids.add(artist['id'])
+print(f"Found {len(classical_artist_ids)} unique classical artists.")
+print(classical_artist_ids)
+Output: Found 5 unique classical artists.
+{33, 10, 12, 21, 28}
+
+--- Step 8 ---
+Code:
+followed_artists = []
+for artist_id in classical_artist_ids:
+    res = apis.spotify.follow_artist(artist_id=artist_id, access_token=access_token)
+    print(f"Following artist {artist_id}: {res}")
+    followed_artists.append(artist_id)
+print(f"Successfully followed {len(followed_artists)} artists.")
+Output: Following artist 33: {'message': 'Artist followed.'}
+Following artist 10: {'message': 'Artist followed.'}
+Following artist 12: {'message': 'Artist followed.'}
+Following artist 21: {'message': 'Artist followed.'}
+Following artist 28: {'message': 'Artist followed.'}
+Successfully followed 5 artists.
+
+--- Step 9 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 9!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m4[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m4[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.UserArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.UserArtistFollowing records using models.changed_records
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert artist_ids of the added artist followings match private_data.to_be_followed_artist_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m4[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m4[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.UserArtistFollowing.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.UserArtistFollowing records using models.changed_records
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert artist_ids of the added artist followings match private_data.to_be_followed_artist_ids.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

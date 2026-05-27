@@ -1,0 +1,241 @@
+
+============================================================
+Task ID: ccb4494_1
+Supervisor: Carl Brown
+Instruction: Like all the songs played so far in my spotify music player queue, including the current one.
+============================================================
+
+--- Step 1 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: [
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name": "logout",
+  "des
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song_queue'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_song_queue",
+ "path": "/spotify/music_player/song_queue",
+ "method": "GET",
+ "description": "Get the music player song queue. Songs are played in the order of the queue in a cycle.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+  "success": [
+   {
+    "song_id": 1,
+    "
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "login",
+ "path": "/spotify/auth/token",
+ "method": "POST",
+ "description": "Login to your account.",
+ "parameters": [
+  {
+   "name": "username",
+   "type": "string",
+   "required": true,
+   "description": "Your account email.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "password",
+   "type": "string",
+   "required": true,
+   "description": "Your account password.",
+   "default": null,
+   "constraints": []
+  }
+ ],
+ "response_schemas": {
+ 
+--- Step 4 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='supervisor', api_name='show_account_passwords'))
+Output: {
+ "app_name": "supervisor",
+ "api_name": "show_account_passwords",
+ "path": "/supervisor/account_passwords",
+ "method": "GET",
+ "description": "Show your supervisor's app account passwords.",
+ "parameters": [],
+ "response_schemas": {
+  "success": [
+   {
+    "account_name": "string",
+    "password": "string"
+   }
+  ],
+  "failure": {
+   "message": "string"
+  }
+ }
+}
+
+--- Step 5 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p['password'] for p in passwords if p['account_name'] == 'spotify'][0]
+login_response = apis.spotify.login(username='carbrown@gmail.com', password=spotify_password)
+access_token = login_response['access_token']
+print(access_token)
+Output: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2NhcmJyb3duQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.kf2xG5M8F_mduPWJbWrURnNy6or8nSA7bzIo2UbELCk
+
+--- Step 6 ---
+Code:
+queue = apis.spotify.show_song_queue(access_token=access_token)
+print(queue)
+Output: [
+ {
+  "song_id": 55,
+  "title": "Tangled Lies",
+  "album_id": 11,
+  "album_title": "Synaptic Serenity",
+  "duration": 186,
+  "artists": [
+   {
+    "id": 5,
+    "name": "Ava Morgan"
+   }
+  ],
+  "position": 0,
+  "is_playing": false,
+  "is_current": false
+ },
+ {
+  "song_id": 30,
+  "title": "Eternal Flame",
+  "album_id": 6,
+  "album_title": "Ethereal Rhapsody",
+  "duration": 258,
+  "artists": [
+   {
+    "id": 36,
+    "name": "Noah Bennett"
+   },
+   {
+    "id": 19,
+    "name": "Ethan Wallace"
+   },
+
+--- Step 7 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='like_song'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "like_song",
+ "path": "/spotify/songs/{song_id}/like",
+ "method": "POST",
+ "description": "Like a song.",
+ "parameters": [
+  {
+   "name": "song_id",
+   "type": "integer",
+   "required": true,
+   "description": "The song id to like.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+
+--- Step 8 ---
+Code:
+current_position = next(song['position'] for song in queue if song['is_current'])
+songs_to_like = [song['song_id'] for song in queue if song['position'] <= current_position]
+
+for song_id in songs_to_like:
+    res = apis.spotify.like_song(song_id=song_id, access_token=access_token)
+    print(f"Liked song {song_id}: {res}")
+Output: Liked song 55: {'message': 'Song liked.'}
+Liked song 30: {'message': 'Song liked.'}
+Liked song 242: {'message': 'Song liked.'}
+Liked song 179: {'message': 'Song liked.'}
+Liked song 111: {'message': 'Song liked.'}
+Liked song 322: {'message': 'Song liked.'}
+
+--- Step 9 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 9!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.SongLike.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.SongLike records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all song_ids from the added song likes are in private_data.song_ids_in_queue.
+[1;32m>> Passed Requirement[0m
+assert song_ids from the added song likes match the private_data.song_ids_to_like [1m([0mignore order[1m)[0m.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m5[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m5[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.SongLike.
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.SongLike records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all song_ids from the added song likes are in private_data.song_ids_in_queue.
+[1;32m>> Passed Requirement[0m
+assert song_ids from the added song likes match the private_data.song_ids_to_like [1m([0mignore order[1m)[0m.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m

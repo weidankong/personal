@@ -1,0 +1,238 @@
+
+============================================================
+Task ID: e3d6c94_1
+Supervisor: Jason Simpson
+Instruction: Add all spotify-recommended classical songs released in this year to a new "Spotify Recommended Songs" playlist.
+============================================================
+
+--- Step 1 ---
+Code:
+import datetime
+current_year = datetime.datetime.now().year
+print(f"Current year: {current_year}")
+print(apis.api_docs.show_api_descriptions(app_name='spotify'))
+Output: Current year: 2023
+[
+ {
+  "name": "show_account",
+  "description": "Show your account information. Unlike show_profile, this includes private information."
+ },
+ {
+  "name": "signup",
+  "description": "Sign up to create account."
+ },
+ {
+  "name": "delete_account",
+  "description": "Delete your account."
+ },
+ {
+  "name": "update_account_name",
+  "description": "Update your first or last name in the account profile."
+ },
+ {
+  "name": "login",
+  "description": "Login to your account."
+ },
+ {
+  "name
+--- Step 2 ---
+Code:
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_recommendations'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='create_playlist'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='show_song'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='add_song_to_playlist'))
+Output: {
+ "app_name": "spotify",
+ "api_name": "show_recommendations",
+ "path": "/spotify/recommendations",
+ "method": "GET",
+ "description": "Get personalized song recommendations for the user.",
+ "parameters": [
+  {
+   "name": "access_token",
+   "type": "string",
+   "required": true,
+   "description": "Access token obtained from spotify app login.",
+   "default": null,
+   "constraints": []
+  },
+  {
+   "name": "page_index",
+   "type": "integer",
+   "required": false,
+   "description": "The index of the
+--- Step 3 ---
+Code:
+print(apis.api_docs.show_api_descriptions(app_name='supervisor'))
+print(apis.api_docs.show_api_doc(app_name='spotify', api_name='login'))
+Output: [
+ {
+  "name": "show_active_task",
+  "description": "Show the currently active task assigned to you by the supervisor."
+ },
+ {
+  "name": "complete_task",
+  "description": "Mark the currently active task as complete with the given answer."
+ },
+ {
+  "name": "show_profile",
+  "description": "Show your supervisor's profile information."
+ },
+ {
+  "name": "show_addresses",
+  "description": "Show your supervisor's addresses."
+ },
+ {
+  "name": "show_payment_cards",
+  "description": "Show your supervisor
+--- Step 4 ---
+Code:
+passwords = apis.supervisor.show_account_passwords()
+spotify_password = [p['password'] for p in passwords if p['account_name'] == 'spotify'][0]
+login_res = apis.spotify.login(username='jasonsimp@gmail.com', password=spotify_password)
+print(login_res)
+Output: {
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2phc29uc2ltcEBnbWFpbC5jb20iLCJleHAiOjE2ODQ0MTIwOTh9.x6X7-XCQ1YvS9_rs89G2soshA6EtuqGTMhFb-jJUSrU",
+ "token_type": "Bearer"
+}
+
+--- Step 5 ---
+Code:
+access_token = login_res['access_token']
+all_recommendations = []
+page_index = 0
+while True:
+    res = apis.spotify.show_recommendations(access_token=access_token, page_index=page_index, page_limit=20)
+    if not res:
+        break
+    all_recommendations.extend(res)
+    if len(res) < 20:
+        break
+    page_index += 1
+print(len(all_recommendations))
+Output: 23
+
+--- Step 6 ---
+Code:
+for song in all_recommendations[:2]:
+    details = apis.spotify.show_song(song_id=song['song_id'])
+    print(details)
+Output: {
+ "song_id": 9,
+ "title": "When Fate Becomes a Foe",
+ "album_id": 2,
+ "album_title": "Celestial Harmonies",
+ "duration": 196,
+ "artists": [
+  {
+   "id": 32,
+   "name": "Lucas Grey",
+   "genre": "R&B",
+   "follower_count": 16
+  }
+ ],
+ "release_date": "2022-05-21T21:55:36",
+ "genre": "R&B",
+ "play_count": 826,
+ "rating": 5.0,
+ "like_count": 16,
+ "review_count": 2,
+ "shareable_link": "https://spotify.com/songs/9"
+}
+{
+ "song_id": 21,
+ "title": "Lost in the Embrace of Night",
+ "album_id": 4,
+ "album
+--- Step 7 ---
+Code:
+classical_songs_2023 = []
+for song in all_recommendations:
+    details = apis.spotify.show_song(song_id=song['song_id'])
+    if details.get('genre', '').lower() == 'classical' and details.get('release_date', '').startswith('2023'):
+        classical_songs_2023.append(details)
+        
+print(f"Found {len(classical_songs_2023)} classical songs from 2023.")
+for s in classical_songs_2023:
+    print(s['song_id'], s['title'], s['genre'], s['release_date'])
+Output: Found 2 classical songs from 2023.
+265 Secrets of the Heart classical 2023-04-29T08:00:31
+273 Endless Drift classical 2023-01-13T15:40:51
+
+--- Step 8 ---
+Code:
+create_res = apis.spotify.create_playlist(title="Spotify Recommended Songs", access_token=access_token)
+print(create_res)
+Output: {"message": "Playlist created.", "playlist_id": 654}
+
+--- Step 9 ---
+Code:
+playlist_id = create_res['playlist_id']
+for song in classical_songs_2023:
+    res = apis.spotify.add_song_to_playlist(playlist_id=playlist_id, song_id=song['song_id'], access_token=access_token)
+    print(f"Added song {song['song_id']}: {res}")
+Output: Added song 265: {'message': 'Song added to the playlist.'}
+Added song 273: {'message': 'Song added to the playlist.'}
+
+--- Step 10 ---
+Code:
+apis.supervisor.complete_task()
+Output: Execution successful.
+
+Task completed at step 10!
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m9[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m9[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.Playlist, spotify.PlaylistSong.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.Playlist records using models.changed_records,
+and assert [1;36m1[0m has been added, and [1;36m0[0m have been updated or removed.
+[1;32m>> Passed Requirement[0m
+assert the added playlist is titled public_data.playlist_title [1m([0m[33mnormalize_text[0m=[3;92mTrue[0m[1m)[0m
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.PlaylistSong records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all added playlist.songs are in private_data.recent_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all added playlist.songs are in private_data.genre_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all song_ids of added playlist.songs match private_data.playlist_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all added_playlist_songs have playlist_id == added_playlist.id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m───────────────────────────────────────────────────────────────────────────────────── [0mOverall Stats[92m ──────────────────────────────────────────────────────────────────────────────────────[0m
+Num Passed Tests : [1;36m9[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m9[0m
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mPasses[92m ─────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.Playlist, spotify.PlaylistSong.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.Playlist records using models.changed_records,
+and assert [1;36m1[0m has been added, and [1;36m0[0m have been updated or removed.
+[1;32m>> Passed Requirement[0m
+assert the added playlist is titled public_data.playlist_title [1m([0m[33mnormalize_text[0m=[3;92mTrue[0m[1m)[0m
+[1;32m>> Passed Requirement[0m
+obtain added, removed spotify.PlaylistSong records using models.changed_records,
+and assert [1;36m0[0m have been removed.
+[1;32m>> Passed Requirement[0m
+assert all added playlist.songs are in private_data.recent_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all added playlist.songs are in private_data.genre_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all song_ids of added playlist.songs match private_data.playlist_song_ids.
+[1;32m>> Passed Requirement[0m
+assert all added_playlist_songs have playlist_id == added_playlist.id.
+[92m───────────────────────────────────────────────────────────────────────────────────────── [0mFails[92m ──────────────────────────────────────────────────────────────────────────────────────────[0m
+[3;35mNone[0m
