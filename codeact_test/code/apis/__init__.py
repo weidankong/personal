@@ -97,5 +97,6 @@ from .spotify_show_premium_plans import show_premium_plans
 from .spotify_subscribe_premium import subscribe_premium, SubscribePremiumOutput
 from .spotify_show_premium_subscriptions import show_premium_subscriptions, PremiumSubscriptionsOutput
 from .spotify_download_premium_subscription_receipt import download_premium_subscription_receipt, DownloadReceiptOutput
+from .spotify_delete_account import delete_account, DeleteAccountOutput
 from .supervisor_complete_task import complete_task, CompleteTaskOutput
 from .supervisor_show_profile import show_profile, SupervisorProfileOutput

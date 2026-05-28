@@ -31,7 +31,6 @@ class ToolServer:
             if tool_name in self._toolname_func:
                 try:
                     result = self._toolname_func[tool_name](**body.arguments)
-                    print(result)
                     resp = {
                         "content": [
                             {"type": b.type, "text": b.text}

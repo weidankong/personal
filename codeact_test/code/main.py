@@ -97,6 +97,7 @@ from apis import (
     add_payment_card, AddPaymentCardOutput,
     update_payment_card, UpdatePaymentCardOutput,
     delete_payment_card, DeletePaymentCardOutput,
+    delete_account, DeleteAccountOutput,
     show_current_song, CurrentSongOutput,
     play_music, PlayMusicOutput,
     pause_music, PauseMusicOutput,
@@ -359,6 +360,7 @@ async def run_one_case(task_id):
     codebox.register_callable_tool(add_payment_card, output_model=AddPaymentCardOutput)
     codebox.register_callable_tool(update_payment_card, output_model=UpdatePaymentCardOutput)
     codebox.register_callable_tool(delete_payment_card, output_model=DeletePaymentCardOutput)
+    codebox.register_callable_tool(delete_account, output_model=DeleteAccountOutput)
     codebox.register_callable_tool(show_current_song, output_model=CurrentSongOutput)
     codebox.register_callable_tool(play_music, output_model=PlayMusicOutput)
     codebox.register_callable_tool(pause_music, output_model=PauseMusicOutput)
@@ -463,7 +465,7 @@ async def main():
     cases = read_cases()
     # await run_one_case('396c5a2_1')
     for case in cases:
-        if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", "codeact", f"{case}.txt")):
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", "codeact", f"{case}.txt")):
             await run_one_case(task_id=case)
 
 def read_cases():

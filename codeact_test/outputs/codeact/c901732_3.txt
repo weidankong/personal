@@ -1,0 +1,1007 @@
+Execute Python code in an IPython sandbox and return the output.
+
+The code runs as an **IPython cell** — **NEVER** wrap it in main function.
+Inside the sandbox, `call_tool(name, **kwargs)` is *ALREADY* available as a synchronous built-in for registered host callbacks. Use the tool name as the first argument and keyword arguments only — do not pass a dict or any other positional arguments after the tool name.
+
+Prefer `run_python_code` when you need to combine one or more`call_tool(...)` calls with Python control flow, loops, orpost-processing.
+
+Registered sandbox tools:
+      - show_app_descriptions(): Show descriptions for all apps available.
+    Input schema: no input parameters
+    Output schema: {'properties': {'apps': {'description': 'List of available apps', 'items': {'properties': {'name': {'description': 'App name', 'title': 'Name', 'type': 'string'}, 'description': {'description': 'Short description of what the app does', 'title': 'Description', 'type': 'string'}}, 'required': ['name', 'description'], 'title': 'AppDescription', 'type': 'object'}, 'title': 'Apps', 'type': 'array'}}, 'required': ['apps'], 'type': 'object'}
+
+  - show_api_descriptions(): Show descriptions for all APIs available for a given app.
+    Input schema: {'properties': {'app_name': {'description': "Name of the app, e.g. 'spotify', 'supervisor', 'venmo'.", 'title': 'App Name', 'type': 'string'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token (required for some apps).', 'title': 'Access Token'}}, 'required': ['app_name'], 'type': 'object'}
+    Output schema: {'properties': {'apis': {'description': 'List of available APIs under the app', 'items': {'properties': {'name': {'description': 'API name', 'title': 'Name', 'type': 'string'}, 'description': {'description': 'Short description of what the API does', 'title': 'Description', 'type': 'string'}}, 'required': ['name', 'description'], 'title': 'ApiDescription', 'type': 'object'}, 'title': 'Apis', 'type': 'array'}}, 'required': ['apis'], 'type': 'object'}
+
+  - show_api_doc(): Show detailed API doc.
+    Input schema: {'properties': {'app_name': {'description': 'Name of the app.', 'title': 'App Name', 'type': 'string'}, 'api_name': {'description': 'Name of the API.', 'title': 'Api Name', 'type': 'string'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token (required for some apps).', 'title': 'Access Token'}}, 'required': ['app_name', 'api_name'], 'type': 'object'}
+    Output schema: {'properties': {'app_name': {'description': 'App name', 'title': 'App Name', 'type': 'string'}, 'api_name': {'description': 'API name', 'title': 'Api Name', 'type': 'string'}, 'path': {'description': "HTTP path, e.g. '/spotify/library/playlists'", 'title': 'Path', 'type': 'string'}, 'method': {'description': "HTTP method, e.g. 'GET', 'POST'", 'title': 'Method', 'type': 'string'}, 'description': {'description': 'Full API description', 'title': 'Description', 'type': 'string'}, 'parameters': {'description': 'List of input parameters', 'items': {'properties': {'name': {'description': 'Parameter name', 'title': 'Name', 'type': 'string'}, 'type': {'description': "Parameter type, e.g. 'string', 'integer'", 'title': 'Type', 'type': 'string'}, 'required': {'description': 'Whether this parameter is required', 'title': 'Required', 'type': 'boolean'}, 'description': {'description': 'Parameter description', 'title': 'Description', 'type': 'string'}, 'default': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Default value, or null if none', 'title': 'Default'}, 'constraints': {'description': 'Any constraints on the parameter', 'items': {'type': 'string'}, 'title': 'Constraints', 'type': 'array'}}, 'required': ['name', 'type', 'required', 'description', 'default', 'constraints'], 'title': 'ApiParameter', 'type': 'object'}, 'title': 'Parameters', 'type': 'array'}, 'response_schemas': {'additionalProperties': True, 'description': 'Success and failure response schemas', 'title': 'Response Schemas', 'type': 'object'}}, 'required': ['app_name', 'api_name', 'path', 'method', 'description', 'parameters', 'response_schemas'], 'type': 'object'}
+
+  - show_account_passwords(): Show your supervisor's app account passwords.
+    Input schema: no input parameters
+    Output schema: {'description': 'List of account/password pairs', 'items': {'properties': {'account_name': {'description': 'The app name of the account', 'title': 'Account Name', 'type': 'string'}, 'password': {'description': 'The password for this account', 'title': 'Password', 'type': 'string'}}, 'required': ['account_name', 'password'], 'title': 'PasswordEntry', 'type': 'object'}, 'type': 'array'}
+
+  - file_system_login(): Login to your file system account.
+    Input schema: {'properties': {'username': {'description': 'Your account email address.', 'title': 'Username', 'type': 'string'}, 'password': {'description': 'Your account password.', 'title': 'Password', 'type': 'string'}}, 'required': ['username', 'password'], 'type': 'object'}
+    Output schema: {'properties': {'access_token': {'description': 'Bearer access token for subsequent API calls', 'title': 'Access Token', 'type': 'string'}, 'token_type': {'description': "Token type, usually 'Bearer'", 'title': 'Token Type', 'type': 'string'}}, 'required': ['access_token', 'token_type'], 'type': 'object'}
+
+  - create_directory(): Create a directory if it does not exist, optionally recursively.
+    Input schema: {'properties': {'directory_path': {'description': 'Path of the directory. Use ~/ for home directory.', 'title': 'Directory Path', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from file_system app login.', 'title': 'Access Token', 'type': 'string'}, 'recursive': {'default': False, 'description': "If True, create all parent directories recursively if they don't exist. Defaults to False.", 'title': 'Recursive', 'type': 'boolean'}, 'allow_if_exists': {'default': True, 'description': 'If True, do not raise an error if the directory already exists. Defaults to True.', 'title': 'Allow If Exists', 'type': 'boolean'}}, 'required': ['directory_path', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - create_file(): Create a new file with the given content.
+    Input schema: {'properties': {'file_path': {'description': 'Path of the file. Use ~/ for home directory. Must have an extension.', 'title': 'File Path', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from file_system app login.', 'title': 'Access Token', 'type': 'string'}, 'content': {'default': '', 'description': 'The content of the file. Defaults to empty string.', 'title': 'Content', 'type': 'string'}, 'overwrite': {'default': False, 'description': 'Whether to overwrite the file if it already exists. Defaults to False.', 'title': 'Overwrite', 'type': 'boolean'}}, 'required': ['file_path', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}, 'file_path': {'description': 'Path of the created file', 'title': 'File Path', 'type': 'string'}}, 'required': ['confirm_message', 'file_path'], 'type': 'object'}
+
+  - show_file(): Show a file's content and other details, if it exists.
+    Input schema: {'properties': {'file_path': {'description': 'Path of the file. Use ~/ for home directory. Must have an extension.', 'title': 'File Path', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from file_system app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['file_path', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'file_id': {'description': 'Unique file ID', 'title': 'File Id', 'type': 'integer'}, 'path': {'description': 'File path', 'title': 'Path', 'type': 'string'}, 'content': {'description': 'File content', 'title': 'Content', 'type': 'string'}, 'created_at': {'description': 'ISO format creation timestamp', 'title': 'Created At', 'type': 'string'}, 'updated_at': {'description': 'ISO format update timestamp', 'title': 'Updated At', 'type': 'string'}}, 'required': ['file_id', 'path', 'content', 'created_at', 'updated_at'], 'type': 'object'}
+
+  - update_file(): Update a file's content.
+    Input schema: {'properties': {'file_path': {'description': 'Path of the file. Use ~/ for home directory. Must have an extension.', 'title': 'File Path', 'type': 'string'}, 'content': {'description': 'The updated content of the file.', 'title': 'Content', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from file_system app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['file_path', 'content', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}, 'file_path': {'description': 'Path of the updated file', 'title': 'File Path', 'type': 'string'}}, 'required': ['confirm_message', 'file_path'], 'type': 'object'}
+
+  - spotify_login(): Login to your account.
+    Input schema: {'properties': {'username': {'description': 'Your account email address.', 'title': 'Username', 'type': 'string'}, 'password': {'description': 'Your account password.', 'title': 'Password', 'type': 'string'}}, 'required': ['username', 'password'], 'type': 'object'}
+    Output schema: {'properties': {'access_token': {'description': 'Bearer access token for subsequent API calls', 'title': 'Access Token', 'type': 'string'}, 'token_type': {'description': "Token type, usually 'Bearer'", 'title': 'Token Type', 'type': 'string'}}, 'required': ['access_token', 'token_type'], 'type': 'object'}
+
+  - show_playlist_library(): Search or show a list of playlists in your playlist library.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Search query to filter playlists by title, artist, etc.', 'title': 'Query'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of playlists', 'items': {'properties': {'playlist_id': {'description': 'Unique playlist ID', 'title': 'Playlist Id', 'type': 'integer'}, 'title': {'description': 'Playlist title', 'title': 'Title', 'type': 'string'}, 'is_public': {'description': 'Whether the playlist is public', 'title': 'Is Public', 'type': 'boolean'}, 'rating': {'description': 'Playlist rating (0.0–5.0)', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}, 'review_count': {'description': 'Number of reviews', 'title': 'Review Count', 'type': 'integer'}, 'owner': {'properties': {'name': {'description': "Owner's full name", 'title': 'Name', 'type': 'string'}, 'email': {'description': "Owner's email address", 'title': 'Email', 'type': 'string'}}, 'required': ['name', 'email'], 'title': 'PlaylistOwner', 'type': 'object'}, 'created_at': {'description': 'ISO format creation timestamp', 'title': 'Created At', 'type': 'string'}, 'song_ids': {'description': 'List of song IDs in the playlist', 'items': {'type': 'integer'}, 'title': 'Song Ids', 'type': 'array'}}, 'required': ['playlist_id', 'title', 'is_public', 'rating', 'like_count', 'review_count', 'owner', 'created_at', 'song_ids'], 'title': 'Playlist', 'type': 'object'}, 'type': 'array'}
+
+  - show_song(): Get details of a specific song.
+    Input schema: {'properties': {'song_id': {'description': 'The song ID to retrieve.', 'title': 'Song Id', 'type': 'integer'}}, 'required': ['song_id'], 'type': 'object'}
+    Output schema: {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'description': 'Album ID', 'title': 'Album Id', 'type': 'integer'}, 'album_title': {'description': 'Album title', 'title': 'Album Title', 'type': 'string'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'follower_count': {'description': 'Number of followers', 'title': 'Follower Count', 'type': 'integer'}}, 'required': ['id', 'name', 'genre', 'follower_count'], 'title': 'SongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'release_date': {'description': 'ISO format release date', 'title': 'Release Date', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'play_count': {'description': 'Number of plays', 'title': 'Play Count', 'type': 'integer'}, 'rating': {'description': 'Song rating (0.0–5.0)', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}, 'review_count': {'description': 'Number of reviews', 'title': 'Review Count', 'type': 'integer'}, 'shareable_link': {'description': 'Shareable URL for the song', 'title': 'Shareable Link', 'type': 'string'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'release_date', 'genre', 'play_count', 'rating', 'like_count', 'review_count', 'shareable_link'], 'type': 'object'}
+
+  - show_liked_songs(): Get a list of songs you have liked.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'The maximum number of results to return per page. Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'default': '-liked_at', 'description': 'The attribute to sort by, prefixed with +/- for ascending/descending.', 'title': 'Sort By', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of liked songs', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Album ID', 'title': 'Album Id'}, 'album_title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Album title', 'title': 'Album Title'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'LikedSongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'liked_at': {'description': 'ISO format timestamp of when the song was liked', 'title': 'Liked At', 'type': 'string'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'liked_at'], 'title': 'LikedSong', 'type': 'object'}, 'type': 'array'}
+
+  - search_songs(): Search for songs with a query.
+    Input schema: {'properties': {'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'artist_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Filter by artist ID.', 'title': 'Artist Id'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Filter by album ID.', 'title': 'Album Id'}, 'genre': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by genre.', 'title': 'Genre'}, 'min_release_date': {'default': '1500-01-01', 'description': 'Minimum release date (YYYY-MM-DD). Defaults to "1500-01-01".', 'title': 'Min Release Date', 'type': 'string'}, 'max_release_date': {'default': '3000-01-01', 'description': 'Maximum release date (YYYY-MM-DD). Defaults to "3000-01-01".', 'title': 'Max Release Date', 'type': 'string'}, 'min_duration': {'default': 0, 'description': 'Minimum duration in seconds. Defaults to 0.', 'title': 'Min Duration', 'type': 'integer'}, 'max_duration': {'default': 9223372036854775807, 'description': 'Maximum duration in seconds.', 'title': 'Max Duration', 'type': 'integer'}, 'min_rating': {'default': 0.0, 'description': 'Minimum rating (0.0-5.0). Defaults to 0.0.', 'title': 'Min Rating', 'type': 'number'}, 'max_rating': {'default': 5.0, 'description': 'Maximum rating (0.0-5.0). Defaults to 5.0.', 'title': 'Max Rating', 'type': 'number'}, 'min_like_count': {'default': 0, 'description': 'Minimum like count. Defaults to 0.', 'title': 'Min Like Count', 'type': 'integer'}, 'max_like_count': {'default': 9223372036854775807, 'description': 'Maximum like count.', 'title': 'Max Like Count', 'type': 'integer'}, 'min_play_count': {'default': 0, 'description': 'Minimum play count. Defaults to 0.', 'title': 'Min Play Count', 'type': 'integer'}, 'max_play_count': {'default': 9223372036854775807, 'description': 'Maximum play count.', 'title': 'Max Play Count', 'type': 'integer'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'type': 'object'}
+    Output schema: {'description': 'List of songs matching the search query', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Album ID', 'title': 'Album Id'}, 'album_title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Album title', 'title': 'Album Title'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'SearchSongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'release_date': {'description': 'ISO format release date', 'title': 'Release Date', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'play_count': {'description': 'Number of plays', 'title': 'Play Count', 'type': 'number'}, 'rating': {'description': 'Song rating (0.0–5.0)', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}, 'review_count': {'description': 'Number of reviews', 'title': 'Review Count', 'type': 'integer'}, 'shareable_link': {'description': 'Shareable URL for the song', 'title': 'Shareable Link', 'type': 'string'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'release_date', 'genre', 'play_count', 'rating', 'like_count', 'review_count', 'shareable_link'], 'title': 'SearchSong', 'type': 'object'}, 'type': 'array'}
+
+  - search_artists(): Search for artists with a query.
+    Input schema: {'properties': {'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'genre': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by genre.', 'title': 'Genre'}, 'min_follower_count': {'default': 0, 'description': 'Minimum number of followers. Defaults to 0.', 'title': 'Min Follower Count', 'type': 'integer'}, 'max_follower_count': {'default': 9223372036854775807, 'description': 'Maximum number of followers.', 'title': 'Max Follower Count', 'type': 'integer'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'type': 'object'}
+    Output schema: {'description': 'List of artists matching the search query', 'items': {'properties': {'artist_id': {'description': 'Unique artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'follower_count': {'description': 'Number of followers', 'title': 'Follower Count', 'type': 'integer'}, 'created_at': {'description': 'ISO format creation date', 'title': 'Created At', 'type': 'string'}}, 'required': ['artist_id', 'name', 'genre', 'follower_count', 'created_at'], 'title': 'SearchArtist', 'type': 'object'}, 'type': 'array'}
+
+  - follow_artist(): Follow an artist.
+    Input schema: {'properties': {'artist_id': {'description': 'The artist ID to follow.', 'title': 'Artist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['artist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_playlist(): Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.
+    Input schema: {'properties': {'playlist_id': {'description': 'The playlist ID to retrieve.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token obtained from spotify app login.', 'title': 'Access Token'}}, 'required': ['playlist_id'], 'type': 'object'}
+    Output schema: {'properties': {'playlist_id': {'description': 'Unique playlist ID', 'title': 'Playlist Id', 'type': 'integer'}, 'title': {'description': 'Playlist title', 'title': 'Title', 'type': 'string'}, 'is_public': {'description': 'Whether the playlist is public', 'title': 'Is Public', 'type': 'boolean'}, 'rating': {'description': 'Playlist rating (0.0–5.0)', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}, 'review_count': {'description': 'Number of reviews', 'title': 'Review Count', 'type': 'integer'}, 'owner': {'properties': {'name': {'description': "Owner's full name", 'title': 'Name', 'type': 'string'}, 'email': {'description': "Owner's email address", 'title': 'Email', 'type': 'string'}}, 'required': ['name', 'email'], 'title': 'PlaylistOwner', 'type': 'object'}, 'created_at': {'description': 'ISO format creation timestamp', 'title': 'Created At', 'type': 'string'}, 'shareable_link': {'description': 'Shareable URL for the playlist', 'title': 'Shareable Link', 'type': 'string'}, 'songs': {'description': 'List of songs in the playlist', 'items': {'properties': {'id': {'description': 'Song ID', 'title': 'Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'description': 'Album ID', 'title': 'Album Id', 'type': 'integer'}, 'album_title': {'description': 'Album title', 'title': 'Album Title', 'type': 'string'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'PlaylistSongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}}, 'required': ['id', 'title', 'album_id', 'album_title', 'duration', 'artists'], 'title': 'PlaylistSong', 'type': 'object'}, 'title': 'Songs', 'type': 'array'}}, 'required': ['playlist_id', 'title', 'is_public', 'rating', 'like_count', 'review_count', 'owner', 'created_at', 'shareable_link', 'songs'], 'type': 'object'}
+
+  - add_song_to_playlist(): Add a song to a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The playlist ID to add the song to.', 'title': 'Playlist Id', 'type': 'integer'}, 'song_id': {'description': 'The song ID to add.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}}, 'required': ['message'], 'type': 'object'}
+
+  - remove_song_from_playlist(): Remove a song from a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The playlist ID to remove the song from.', 'title': 'Playlist Id', 'type': 'integer'}, 'song_id': {'description': 'The song ID to remove.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}}, 'required': ['message'], 'type': 'object'}
+
+  - review_song(): Rate or review a song.
+    Input schema: {'properties': {'song_id': {'description': 'ID of the song to review.', 'title': 'Song Id', 'type': 'integer'}, 'rating': {'description': 'Song rating (1-5).', 'title': 'Rating', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'title': {'default': '', 'description': 'Title of the review. Defaults to empty.', 'title': 'Title', 'type': 'string'}, 'text': {'default': '', 'description': 'Text content of the review. Defaults to empty.', 'title': 'Text', 'type': 'string'}}, 'required': ['song_id', 'rating', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'song_review_id': {'description': 'ID of the newly created review', 'title': 'Song Review Id', 'type': 'integer'}}, 'required': ['message', 'song_review_id'], 'type': 'object'}
+
+  - update_song_review(): Update a song review.
+    Input schema: {'properties': {'review_id': {'description': 'ID of the song review to update (not song_id).', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'rating': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'New song rating (1-5). Optional.', 'title': 'Rating'}, 'title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New review title. Optional.', 'title': 'Title'}, 'text': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New review text. Optional.', 'title': 'Text'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}}, 'required': ['message'], 'type': 'object'}
+
+  - show_song_review(): Show a song review.
+    Input schema: {'properties': {'review_id': {'description': 'The song review ID to retrieve.', 'title': 'Review Id', 'type': 'integer'}}, 'required': ['review_id'], 'type': 'object'}
+    Output schema: {'properties': {'song_review_id': {'description': 'Review ID', 'title': 'Song Review Id', 'type': 'integer'}, 'song_id': {'description': 'Song ID', 'title': 'Song Id', 'type': 'integer'}, 'rating': {'description': 'Song rating (1-5)', 'title': 'Rating', 'type': 'number'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'created_at': {'description': 'ISO format timestamp', 'title': 'Created At', 'type': 'string'}, 'user': {'properties': {'name': {'description': 'Reviewer name', 'title': 'Name', 'type': 'string'}, 'email': {'description': 'Reviewer email', 'title': 'Email', 'type': 'string'}}, 'required': ['name', 'email'], 'title': 'ReviewUser', 'type': 'object'}}, 'required': ['song_review_id', 'song_id', 'rating', 'title', 'text', 'created_at', 'user'], 'type': 'object'}
+
+  - show_song_reviews(): Search or show a list of reviews for a song.
+    Input schema: {'properties': {'song_id': {'description': 'ID of the song.', 'title': 'Song Id', 'type': 'integer'}, 'query': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Optional search query for filtering reviews.', 'title': 'Query'}, 'user_email': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Optional filter by reviewer email.', 'title': 'User Email'}, 'min_rating': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Optional minimum rating filter.', 'title': 'Min Rating'}, 'max_rating': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Optional maximum rating filter.', 'title': 'Max Rating'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'The maximum number of results per page. Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Optional sort attribute.', 'title': 'Sort By'}}, 'required': ['song_id'], 'type': 'object'}
+    Output schema: {'description': 'List of reviews for the song', 'items': {'properties': {'song_review_id': {'description': 'Review ID', 'title': 'Song Review Id', 'type': 'integer'}, 'song_id': {'description': 'Song ID', 'title': 'Song Id', 'type': 'integer'}, 'rating': {'description': 'Song rating (1-5)', 'title': 'Rating', 'type': 'number'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'created_at': {'description': 'ISO format timestamp', 'title': 'Created At', 'type': 'string'}, 'user': {'properties': {'name': {'description': 'Reviewer name', 'title': 'Name', 'type': 'string'}, 'email': {'description': 'Reviewer email', 'title': 'Email', 'type': 'string'}}, 'required': ['name', 'email'], 'title': 'ReviewUser', 'type': 'object'}}, 'required': ['song_review_id', 'song_id', 'rating', 'title', 'text', 'created_at', 'user'], 'title': 'SongReviewEntry', 'type': 'object'}, 'type': 'array'}
+
+  - delete_song_review(): Delete a song review.
+    Input schema: {'properties': {'review_id': {'description': 'ID of the song review to delete.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}}, 'required': ['message'], 'type': 'object'}
+
+  - phone_login(): Login to your account.
+    Input schema: {'properties': {'username': {'description': 'Your account phone number.', 'title': 'Username', 'type': 'string'}, 'password': {'description': 'Your account password.', 'title': 'Password', 'type': 'string'}}, 'required': ['username', 'password'], 'type': 'object'}
+    Output schema: {'properties': {'access_token': {'description': 'JWT access token for authentication', 'title': 'Access Token', 'type': 'string'}, 'token_type': {'description': "Token type, typically 'Bearer'", 'title': 'Token Type', 'type': 'string'}}, 'required': ['access_token', 'token_type'], 'type': 'object'}
+
+  - search_text_messages(): Show or search your text messages.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from phone app login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'phone_number': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'The phone number of the contact to show messages with.', 'title': 'Phone Number'}, 'only_latest_per_contact': {'default': False, 'description': 'If True, only the latest message from each contact.', 'title': 'Only Latest Per Contact', 'type': 'boolean'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of text messages', 'items': {'properties': {'text_message_id': {'description': 'Unique message ID', 'title': 'Text Message Id', 'type': 'integer'}, 'sender': {'properties': {'contact_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Contact ID (null if not in contacts)', 'title': 'Contact Id'}, 'name': {'description': 'Contact name', 'title': 'Name', 'type': 'string'}, 'phone_number': {'description': 'Phone number', 'title': 'Phone Number', 'type': 'string'}}, 'required': ['contact_id', 'name', 'phone_number'], 'title': 'MessageContact', 'type': 'object'}, 'receiver': {'properties': {'contact_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Contact ID (null if not in contacts)', 'title': 'Contact Id'}, 'name': {'description': 'Contact name', 'title': 'Name', 'type': 'string'}, 'phone_number': {'description': 'Phone number', 'title': 'Phone Number', 'type': 'string'}}, 'required': ['contact_id', 'name', 'phone_number'], 'title': 'MessageContact', 'type': 'object'}, 'message': {'description': 'Message content', 'title': 'Message', 'type': 'string'}, 'sent_at': {'description': 'ISO format timestamp', 'title': 'Sent At', 'type': 'string'}}, 'required': ['text_message_id', 'sender', 'receiver', 'message', 'sent_at'], 'title': 'TextMessage', 'type': 'object'}, 'type': 'array'}
+
+  - get_current_date_and_time(): Show current date and time.
+    Input schema: no input parameters
+    Output schema: {'properties': {'date': {'description': 'Current date', 'title': 'Date', 'type': 'string'}, 'time': {'description': 'Current time', 'title': 'Time', 'type': 'string'}}, 'required': ['date', 'time'], 'type': 'object'}
+
+  - show_song_library(): Search or show a list of songs in your song library.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of songs in the song library', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'description': 'Album ID', 'title': 'Album Id', 'type': 'integer'}, 'album_title': {'description': 'Album title', 'title': 'Album Title', 'type': 'string'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'LibrarySongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'added_at': {'description': 'ISO format date when added to library', 'title': 'Added At', 'type': 'string'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'added_at'], 'title': 'LibrarySong', 'type': 'object'}, 'type': 'array'}
+
+  - show_album_library(): Search or show a list of albums in your album library.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of albums in the album library', 'items': {'properties': {'album_id': {'description': 'Unique album ID', 'title': 'Album Id', 'type': 'integer'}, 'title': {'description': 'Album title', 'title': 'Title', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'LibraryAlbumArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'rating': {'description': 'Album rating (0.0-5.0)', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}, 'review_count': {'description': 'Number of reviews', 'title': 'Review Count', 'type': 'integer'}, 'release_date': {'description': 'ISO format release date', 'title': 'Release Date', 'type': 'string'}, 'song_ids': {'description': 'List of song IDs in the album', 'items': {'type': 'integer'}, 'title': 'Song Ids', 'type': 'array'}, 'added_at': {'description': 'ISO format date when added to library', 'title': 'Added At', 'type': 'string'}}, 'required': ['album_id', 'title', 'genre', 'artists', 'rating', 'like_count', 'review_count', 'release_date', 'song_ids', 'added_at'], 'title': 'LibraryAlbum', 'type': 'object'}, 'type': 'array'}
+
+  - show_recommendations(): Get personalized song recommendations for the user.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'The maximum number of results to return per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of recommended songs', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Album ID', 'title': 'Album Id'}, 'album_title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Album title', 'title': 'Album Title'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'RecommendationArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists'], 'title': 'Recommendation', 'type': 'object'}, 'type': 'array'}
+
+  - signup(): Sign up for a new Spotify account.
+    Input schema: {'properties': {'first_name': {'description': 'First name of the user.', 'title': 'First Name', 'type': 'string'}, 'last_name': {'description': 'Last name of the user.', 'title': 'Last Name', 'type': 'string'}, 'email': {'description': 'Email address for the account.', 'title': 'Email', 'type': 'string'}, 'password': {'description': 'Password for the account.', 'title': 'Password', 'type': 'string'}}, 'required': ['first_name', 'last_name', 'email', 'password'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - logout(): Log out of the Spotify account.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_profile(): Show your supervisor's profile information.
+    Input schema: no input parameters
+    Output schema: {'properties': {'first_name': {'description': "Supervisor's first name", 'title': 'First Name', 'type': 'string'}, 'last_name': {'description': "Supervisor's last name", 'title': 'Last Name', 'type': 'string'}, 'email': {'description': "Supervisor's email address", 'title': 'Email', 'type': 'string'}, 'phone_number': {'description': "Supervisor's phone number", 'title': 'Phone Number', 'type': 'string'}, 'birthday': {'description': "Supervisor's birthday", 'title': 'Birthday', 'type': 'string'}, 'sex': {'description': "Supervisor's sex", 'title': 'Sex', 'type': 'string'}}, 'required': ['first_name', 'last_name', 'email', 'phone_number', 'birthday', 'sex'], 'type': 'object'}
+
+  - show_account(): Show the full account details of the logged-in Spotify user.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'first_name': {'description': 'First name', 'title': 'First Name', 'type': 'string'}, 'last_name': {'description': 'Last name', 'title': 'Last Name', 'type': 'string'}, 'email': {'description': 'Email address', 'title': 'Email', 'type': 'string'}}, 'required': ['first_name', 'last_name', 'email'], 'type': 'object'}
+
+  - update_account_name(): Update the account name of the logged-in Spotify user.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'first_name': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New first name.', 'title': 'First Name'}, 'last_name': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New last name.', 'title': 'Last Name'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - search_users(): Search for Spotify users by name or email.
+    Input schema: {'properties': {'query': {'description': 'The search query string.', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page. Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}}, 'required': ['query'], 'type': 'object'}
+    Output schema: {'description': 'List of users matching the search query', 'items': {'properties': {'first_name': {'description': 'First name', 'title': 'First Name', 'type': 'string'}, 'last_name': {'description': 'Last name', 'title': 'Last Name', 'type': 'string'}, 'email': {'description': 'Email address', 'title': 'Email', 'type': 'string'}}, 'required': ['first_name', 'last_name', 'email'], 'title': 'ShortenedUser', 'type': 'object'}, 'type': 'array'}
+
+  - show_genres(): Get a list of all available music genres.
+    Input schema: no input parameters
+    Output schema: {'description': 'List of available genres', 'items': {'type': 'string'}, 'type': 'array'}
+
+  - show_song_privates(): Show private info (liked, reviewed, in library, downloaded) about a song for the logged-in user.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'liked': {'description': 'Whether the song is liked', 'title': 'Liked', 'type': 'boolean'}, 'reviewed': {'description': 'Whether the song is reviewed', 'title': 'Reviewed', 'type': 'boolean'}, 'in_library': {'description': 'Whether the song is in library', 'title': 'In Library', 'type': 'boolean'}, 'downloaded': {'description': 'Whether the song is downloaded', 'title': 'Downloaded', 'type': 'boolean'}}, 'required': ['liked', 'reviewed', 'in_library', 'downloaded'], 'type': 'object'}
+
+  - like_song(): Like a song.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to like.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - unlike_song(): Remove a like from a song.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to unlike.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - search_albums(): Search for albums with a query.
+    Input schema: {'properties': {'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'min_rating': {'default': 0, 'description': 'Minimum rating filter. Defaults to 0.', 'title': 'Min Rating', 'type': 'number'}, 'max_rating': {'default': 5, 'description': 'Maximum rating filter. Defaults to 5.', 'title': 'Max Rating', 'type': 'number'}, 'min_release_date': {'default': '0001-01-01', 'description': 'Minimum release date filter. Defaults to "0001-01-01".', 'title': 'Min Release Date', 'type': 'string'}, 'max_release_date': {'default': '9999-12-31', 'description': 'Maximum release date filter. Defaults to "9999-12-31".', 'title': 'Max Release Date', 'type': 'string'}, 'min_like_count': {'default': 0, 'description': 'Minimum like count filter. Defaults to 0.', 'title': 'Min Like Count', 'type': 'integer'}, 'max_like_count': {'default': 9223372036854775807, 'description': 'Maximum like count filter. Defaults to max int.', 'title': 'Max Like Count', 'type': 'integer'}, 'genre': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by genre.', 'title': 'Genre'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'type': 'object'}
+    Output schema: {'description': 'List of albums matching the search query', 'items': {'properties': {'album_id': {'description': 'Unique album ID', 'title': 'Album Id', 'type': 'integer'}, 'title': {'description': 'Album title', 'title': 'Title', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'artist_id': {'description': 'Artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'artist_name': {'description': 'Artist name', 'title': 'Artist Name', 'type': 'string'}, 'rating': {'description': 'Average rating', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}}, 'required': ['album_id', 'title', 'genre', 'artist_id', 'artist_name', 'rating', 'like_count'], 'title': 'AlbumShortened', 'type': 'object'}, 'type': 'array'}
+
+  - show_album(): Show details of an album.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album.', 'title': 'Album Id', 'type': 'integer'}}, 'required': ['album_id'], 'type': 'object'}
+    Output schema: {'properties': {'album_id': {'description': 'Unique album ID', 'title': 'Album Id', 'type': 'integer'}, 'title': {'description': 'Album title', 'title': 'Title', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'artist_id': {'description': 'Artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'artist_name': {'description': 'Artist name', 'title': 'Artist Name', 'type': 'string'}, 'release_date': {'description': 'Release date', 'title': 'Release Date', 'type': 'string'}, 'rating': {'description': 'Average rating', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}}, 'required': ['album_id', 'title', 'genre', 'artist_id', 'artist_name', 'release_date', 'rating', 'like_count'], 'type': 'object'}
+
+  - show_album_privates(): Show private info (liked, reviewed, in library) about an album for the logged-in user.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album.', 'title': 'Album Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'liked': {'description': 'Whether the album is liked', 'title': 'Liked', 'type': 'boolean'}, 'reviewed': {'description': 'Whether the album is reviewed', 'title': 'Reviewed', 'type': 'boolean'}, 'in_library': {'description': 'Whether the album is in library', 'title': 'In Library', 'type': 'boolean'}}, 'required': ['liked', 'reviewed', 'in_library'], 'type': 'object'}
+
+  - like_album(): Like an album.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album to like.', 'title': 'Album Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - unlike_album(): Remove a like from an album.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album to unlike.', 'title': 'Album Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_liked_albums(): Get a list of albums you have liked.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'default': '-liked_at', 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of liked albums', 'items': {'properties': {'album_id': {'description': 'Unique album ID', 'title': 'Album Id', 'type': 'integer'}, 'title': {'description': 'Album title', 'title': 'Title', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'artist_id': {'description': 'Artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'artist_name': {'description': 'Artist name', 'title': 'Artist Name', 'type': 'string'}, 'liked_at': {'description': 'ISO format timestamp', 'title': 'Liked At', 'type': 'string'}}, 'required': ['album_id', 'title', 'genre', 'artist_id', 'artist_name', 'liked_at'], 'title': 'LikedAlbum', 'type': 'object'}, 'type': 'array'}
+
+  - search_playlists(): Search for playlists with a query.
+    Input schema: {'properties': {'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'min_like_count': {'default': 0, 'description': 'Minimum like count filter. Defaults to 0.', 'title': 'Min Like Count', 'type': 'integer'}, 'max_like_count': {'default': 9223372036854775807, 'description': 'Maximum like count filter. Defaults to max int.', 'title': 'Max Like Count', 'type': 'integer'}, 'min_rating': {'default': 0, 'description': 'Minimum rating filter. Defaults to 0.', 'title': 'Min Rating', 'type': 'number'}, 'max_rating': {'default': 5, 'description': 'Maximum rating filter. Defaults to 5.', 'title': 'Max Rating', 'type': 'number'}, 'owner_email': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by owner email.', 'title': 'Owner Email'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token obtained from spotify app login.', 'title': 'Access Token'}}, 'type': 'object'}
+    Output schema: {'description': 'List of playlists matching the search query', 'items': {'properties': {'playlist_id': {'description': 'Unique playlist ID', 'title': 'Playlist Id', 'type': 'integer'}, 'title': {'description': 'Playlist title', 'title': 'Title', 'type': 'string'}, 'owner_name': {'description': 'Owner name', 'title': 'Owner Name', 'type': 'string'}, 'is_public': {'description': 'Whether the playlist is public', 'title': 'Is Public', 'type': 'boolean'}, 'rating': {'description': 'Average rating', 'title': 'Rating', 'type': 'number'}, 'like_count': {'description': 'Number of likes', 'title': 'Like Count', 'type': 'integer'}}, 'required': ['playlist_id', 'title', 'owner_name', 'is_public', 'rating', 'like_count'], 'title': 'PlaylistShortened', 'type': 'object'}, 'type': 'array'}
+
+  - show_playlist_privates(): Show private info (liked, reviewed, in library) about a playlist for the logged-in user.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'liked': {'description': 'Whether the playlist is liked', 'title': 'Liked', 'type': 'boolean'}, 'reviewed': {'description': 'Whether the playlist is reviewed', 'title': 'Reviewed', 'type': 'boolean'}, 'in_library': {'description': 'Whether the playlist is in library', 'title': 'In Library', 'type': 'boolean'}}, 'required': ['liked', 'reviewed', 'in_library'], 'type': 'object'}
+
+  - create_playlist(): Create a new playlist.
+    Input schema: {'properties': {'title': {'description': 'The title of the playlist.', 'title': 'Title', 'type': 'string'}, 'is_public': {'default': True, 'description': 'Whether the playlist is public. Defaults to True.', 'title': 'Is Public', 'type': 'boolean'}, 'access_token': {'default': '', 'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['title'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'playlist_id': {'description': 'ID of the created playlist', 'title': 'Playlist Id', 'type': 'integer'}}, 'required': ['message', 'playlist_id'], 'type': 'object'}
+
+  - update_playlist(): Update a playlist's title or visibility.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New title for the playlist.', 'title': 'Title'}, 'is_public': {'anyOf': [{'type': 'boolean'}, {'type': 'null'}], 'default': None, 'description': 'Whether the playlist is public.', 'title': 'Is Public'}}, 'required': ['playlist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - delete_playlist(): Delete a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist to delete.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - like_playlist(): Like a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist to like.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - unlike_playlist(): Remove a like from a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist to unlike.', 'title': 'Playlist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_liked_playlists(): Get a list of playlists you have liked.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'default': '-liked_at', 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of liked playlists', 'items': {'properties': {'playlist_id': {'description': 'Unique playlist ID', 'title': 'Playlist Id', 'type': 'integer'}, 'title': {'description': 'Playlist title', 'title': 'Title', 'type': 'string'}, 'owner_name': {'description': 'Owner name', 'title': 'Owner Name', 'type': 'string'}, 'is_public': {'description': 'Whether the playlist is public', 'title': 'Is Public', 'type': 'boolean'}, 'liked_at': {'description': 'ISO format timestamp', 'title': 'Liked At', 'type': 'string'}}, 'required': ['playlist_id', 'title', 'owner_name', 'is_public', 'liked_at'], 'title': 'LikedPlaylist', 'type': 'object'}, 'type': 'array'}
+
+  - show_artist(): Show details of an artist.
+    Input schema: {'properties': {'artist_id': {'description': 'The ID of the artist.', 'title': 'Artist Id', 'type': 'integer'}}, 'required': ['artist_id'], 'type': 'object'}
+    Output schema: {'properties': {'artist_id': {'description': 'Unique artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'follower_count': {'description': 'Number of followers', 'title': 'Follower Count', 'type': 'integer'}}, 'required': ['artist_id', 'name', 'genre', 'follower_count'], 'type': 'object'}
+
+  - show_artist_following(): Check if the logged-in user is following an artist.
+    Input schema: {'properties': {'artist_id': {'description': 'The ID of the artist.', 'title': 'Artist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['artist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'is_following': {'description': 'Whether the user is following the artist', 'title': 'Is Following', 'type': 'boolean'}}, 'required': ['is_following'], 'type': 'object'}
+
+  - add_song_to_library(): Add a song to your library.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to add.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - remove_song_from_library(): Remove a song from your library.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to remove.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - add_album_to_library(): Add an album to your library.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album to add.', 'title': 'Album Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - remove_album_from_library(): Remove an album from your library.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album to remove.', 'title': 'Album Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_downloaded_songs(): Get a list of songs you have downloaded.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'min_downloaded_at': {'default': '0001-01-01', 'description': 'Minimum download date filter. Defaults to "0001-01-01".', 'title': 'Min Downloaded At', 'type': 'string'}, 'max_downloaded_at': {'default': '9999-12-31', 'description': 'Maximum download date filter. Defaults to "9999-12-31".', 'title': 'Max Downloaded At', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of downloaded songs', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'description': 'Album ID', 'title': 'Album Id'}, 'album_title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Album title', 'title': 'Album Title'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'DownloadedSongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'downloaded_at': {'description': 'ISO format timestamp', 'title': 'Downloaded At', 'type': 'string'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'downloaded_at'], 'title': 'DownloadedSong', 'type': 'object'}, 'type': 'array'}
+
+  - download_song(): Download a song.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to download.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - remove_downloaded_song(): Remove a downloaded song.
+    Input schema: {'properties': {'song_id': {'description': 'The ID of the song to remove from downloads.', 'title': 'Song Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['song_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_following_artists(): Get a list of artists you are following.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'query': {'default': '', 'description': 'The search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of followed artists', 'items': {'properties': {'artist_id': {'description': 'Unique artist ID', 'title': 'Artist Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}, 'genre': {'description': 'Music genre', 'title': 'Genre', 'type': 'string'}, 'follower_count': {'description': 'Number of followers', 'title': 'Follower Count', 'type': 'integer'}}, 'required': ['artist_id', 'name', 'genre', 'follower_count'], 'title': 'FollowingArtist', 'type': 'object'}, 'type': 'array'}
+
+  - unfollow_artist(): Unfollow an artist.
+    Input schema: {'properties': {'artist_id': {'description': 'The ID of the artist to unfollow.', 'title': 'Artist Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['artist_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_album_reviews(): Show reviews for an album.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album.', 'title': 'Album Id', 'type': 'integer'}, 'query': {'default': '', 'description': 'Search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'user_email': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by reviewer email.', 'title': 'User Email'}, 'min_rating': {'default': 1, 'description': 'Minimum rating filter. Defaults to 1.', 'title': 'Min Rating', 'type': 'integer'}, 'max_rating': {'default': 5, 'description': 'Maximum rating filter. Defaults to 5.', 'title': 'Max Rating', 'type': 'integer'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}}, 'required': ['album_id'], 'type': 'object'}
+    Output schema: {'description': 'List of album reviews', 'items': {'properties': {'review_id': {'description': 'Unique review ID', 'title': 'Review Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5)', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'user_email': {'description': 'Reviewer email', 'title': 'User Email', 'type': 'string'}, 'created_at': {'description': 'ISO format creation date', 'title': 'Created At', 'type': 'string'}}, 'required': ['review_id', 'rating', 'title', 'text', 'user_email', 'created_at'], 'title': 'AlbumReview', 'type': 'object'}, 'type': 'array'}
+
+  - review_album(): Write a review for an album.
+    Input schema: {'properties': {'album_id': {'description': 'The ID of the album.', 'title': 'Album Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5).', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title.', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text.', 'title': 'Text', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['album_id', 'rating', 'title', 'text', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'review_id': {'description': 'ID of the created review', 'title': 'Review Id', 'type': 'integer'}}, 'required': ['message', 'review_id'], 'type': 'object'}
+
+  - update_album_review(): Update an album review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review to update.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'rating': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'New rating (1-5).', 'title': 'Rating'}, 'title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New title.', 'title': 'Title'}, 'text': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New text.', 'title': 'Text'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - delete_album_review(): Delete an album review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review to delete.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_album_review(): Show a specific album review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review.', 'title': 'Review Id', 'type': 'integer'}}, 'required': ['review_id'], 'type': 'object'}
+    Output schema: {'properties': {'review_id': {'description': 'Unique review ID', 'title': 'Review Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5)', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'user_email': {'description': 'Reviewer email', 'title': 'User Email', 'type': 'string'}, 'created_at': {'description': 'ISO format creation date', 'title': 'Created At', 'type': 'string'}}, 'required': ['review_id', 'rating', 'title', 'text', 'user_email', 'created_at'], 'type': 'object'}
+
+  - show_playlist_reviews(): Show reviews for a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist.', 'title': 'Playlist Id', 'type': 'integer'}, 'query': {'default': '', 'description': 'Search query string. Defaults to "".', 'title': 'Query', 'type': 'string'}, 'user_email': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Filter by reviewer email.', 'title': 'User Email'}, 'min_rating': {'default': 1, 'description': 'Minimum rating filter. Defaults to 1.', 'title': 'Min Rating', 'type': 'integer'}, 'max_rating': {'default': 5, 'description': 'Maximum rating filter. Defaults to 5.', 'title': 'Max Rating', 'type': 'integer'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}, 'sort_by': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Sort attribute prefixed with +/- for ascending/descending.', 'title': 'Sort By'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token obtained from spotify app login.', 'title': 'Access Token'}}, 'required': ['playlist_id'], 'type': 'object'}
+    Output schema: {'description': 'List of playlist reviews', 'items': {'properties': {'review_id': {'description': 'Unique review ID', 'title': 'Review Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5)', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'user_email': {'description': 'Reviewer email', 'title': 'User Email', 'type': 'string'}, 'created_at': {'description': 'ISO format creation date', 'title': 'Created At', 'type': 'string'}}, 'required': ['review_id', 'rating', 'title', 'text', 'user_email', 'created_at'], 'title': 'PlaylistReview', 'type': 'object'}, 'type': 'array'}
+
+  - review_playlist(): Write a review for a playlist.
+    Input schema: {'properties': {'playlist_id': {'description': 'The ID of the playlist.', 'title': 'Playlist Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5).', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title.', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text.', 'title': 'Text', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['playlist_id', 'rating', 'title', 'text', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'review_id': {'description': 'ID of the created review', 'title': 'Review Id', 'type': 'integer'}}, 'required': ['message', 'review_id'], 'type': 'object'}
+
+  - update_playlist_review(): Update a playlist review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review to update.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'rating': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'New rating (1-5).', 'title': 'Rating'}, 'title': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New title.', 'title': 'Title'}, 'text': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'New text.', 'title': 'Text'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - delete_playlist_review(): Delete a playlist review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review to delete.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['review_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_playlist_review(): Show a specific playlist review.
+    Input schema: {'properties': {'review_id': {'description': 'The ID of the review.', 'title': 'Review Id', 'type': 'integer'}, 'access_token': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'Access token obtained from spotify app login.', 'title': 'Access Token'}}, 'required': ['review_id'], 'type': 'object'}
+    Output schema: {'properties': {'review_id': {'description': 'Unique review ID', 'title': 'Review Id', 'type': 'integer'}, 'rating': {'description': 'Rating (1-5)', 'title': 'Rating', 'type': 'integer'}, 'title': {'description': 'Review title', 'title': 'Title', 'type': 'string'}, 'text': {'description': 'Review text', 'title': 'Text', 'type': 'string'}, 'user_email': {'description': 'Reviewer email', 'title': 'User Email', 'type': 'string'}, 'created_at': {'description': 'ISO format creation date', 'title': 'Created At', 'type': 'string'}}, 'required': ['review_id', 'rating', 'title', 'text', 'user_email', 'created_at'], 'type': 'object'}
+
+  - show_payment_cards(): Get a list of payment cards on file.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of payment cards', 'items': {'properties': {'payment_card_id': {'description': 'Unique payment card ID', 'title': 'Payment Card Id', 'type': 'integer'}, 'card_name': {'description': 'Card name', 'title': 'Card Name', 'type': 'string'}, 'owner_name': {'description': 'Card owner name', 'title': 'Owner Name', 'type': 'string'}, 'card_number': {'description': 'Card number (last 4 digits)', 'title': 'Card Number', 'type': 'integer'}, 'expiry_year': {'description': 'Expiry year', 'title': 'Expiry Year', 'type': 'integer'}, 'expiry_month': {'description': 'Expiry month', 'title': 'Expiry Month', 'type': 'integer'}}, 'required': ['payment_card_id', 'card_name', 'owner_name', 'card_number', 'expiry_year', 'expiry_month'], 'title': 'PaymentCard', 'type': 'object'}, 'type': 'array'}
+
+  - show_payment_card(): Show details of a specific payment card.
+    Input schema: {'properties': {'payment_card_id': {'description': 'The ID of the payment card.', 'title': 'Payment Card Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['payment_card_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'payment_card_id': {'description': 'Unique payment card ID', 'title': 'Payment Card Id', 'type': 'integer'}, 'card_name': {'description': 'Card name', 'title': 'Card Name', 'type': 'string'}, 'owner_name': {'description': 'Card owner name', 'title': 'Owner Name', 'type': 'string'}, 'card_number': {'description': 'Card number (last 4 digits)', 'title': 'Card Number', 'type': 'integer'}, 'expiry_year': {'description': 'Expiry year', 'title': 'Expiry Year', 'type': 'integer'}, 'expiry_month': {'description': 'Expiry month', 'title': 'Expiry Month', 'type': 'integer'}}, 'required': ['payment_card_id', 'card_name', 'owner_name', 'card_number', 'expiry_year', 'expiry_month'], 'type': 'object'}
+
+  - add_payment_card(): Add a payment card to your account.
+    Input schema: {'properties': {'card_name': {'description': 'Name for the card.', 'title': 'Card Name', 'type': 'string'}, 'owner_name': {'description': 'Name of the card owner.', 'title': 'Owner Name', 'type': 'string'}, 'card_number': {'description': 'Card number.', 'title': 'Card Number', 'type': 'integer'}, 'expiry_year': {'description': 'Expiry year.', 'title': 'Expiry Year', 'type': 'integer'}, 'expiry_month': {'description': 'Expiry month.', 'title': 'Expiry Month', 'type': 'integer'}, 'cvv_number': {'description': 'CVV number.', 'title': 'Cvv Number', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['card_name', 'owner_name', 'card_number', 'expiry_year', 'expiry_month', 'cvv_number', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'payment_card_id': {'description': 'ID of the added payment card', 'title': 'Payment Card Id', 'type': 'integer'}}, 'required': ['message', 'payment_card_id'], 'type': 'object'}
+
+  - update_payment_card(): Update a payment card's name.
+    Input schema: {'properties': {'payment_card_id': {'description': 'The ID of the payment card.', 'title': 'Payment Card Id', 'type': 'integer'}, 'card_name': {'description': 'New name for the card.', 'title': 'Card Name', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['payment_card_id', 'card_name', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - delete_payment_card(): Delete a payment card.
+    Input schema: {'properties': {'payment_card_id': {'description': 'The ID of the payment card to delete.', 'title': 'Payment Card Id', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['payment_card_id', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - delete_account(): Delete the Spotify account and all data belonging to it.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_current_song(): Show the currently playing song and playback status.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'description': 'Album ID', 'title': 'Album Id', 'type': 'integer'}, 'album_title': {'description': 'Album title', 'title': 'Album Title', 'type': 'string'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'progress': {'description': 'Current playback position in seconds', 'title': 'Progress', 'type': 'integer'}, 'is_playing': {'description': 'Whether the song is currently playing', 'title': 'Is Playing', 'type': 'boolean'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'progress', 'is_playing'], 'type': 'object'}
+
+  - play_music(): Play a song, album, or playlist.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'song_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the song to play.', 'title': 'Song Id'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the album to play.', 'title': 'Album Id'}, 'playlist_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the playlist to play.', 'title': 'Playlist Id'}, 'queue_position': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Position in queue to start from.', 'title': 'Queue Position'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'song_id': {'description': 'ID of the song now playing', 'title': 'Song Id', 'type': 'integer'}}, 'required': ['message', 'song_id'], 'type': 'object'}
+
+  - pause_music(): Pause the currently playing music.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - previous_song(): Go to the previous song in the queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'song_id': {'description': 'ID of the previous song', 'title': 'Song Id', 'type': 'integer'}}, 'required': ['message', 'song_id'], 'type': 'object'}
+
+  - next_song(): Go to the next song in the queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'song_id': {'description': 'ID of the next song', 'title': 'Song Id', 'type': 'integer'}}, 'required': ['message', 'song_id'], 'type': 'object'}
+
+  - move_song_in_queue(): Move a song to a different position in the queue.
+    Input schema: {'properties': {'current_position': {'description': 'Current position of the song in the queue.', 'title': 'Current Position', 'type': 'integer'}, 'new_position': {'description': 'New position for the song.', 'title': 'New Position', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['current_position', 'new_position', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - seek_song(): Seek to a specific position in the currently playing song.
+    Input schema: {'properties': {'seek_seconds': {'description': 'The position to seek to in seconds.', 'title': 'Seek Seconds', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['seek_seconds', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - loop_song(): Toggle loop mode for the current song.
+    Input schema: {'properties': {'loop': {'description': 'True to enable loop, False to disable.', 'title': 'Loop', 'type': 'boolean'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['loop', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - shuffle_song_queue(): Shuffle the song queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_song_queue(): Show the current song queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of songs in the queue', 'items': {'properties': {'song_id': {'description': 'Unique song ID', 'title': 'Song Id', 'type': 'integer'}, 'title': {'description': 'Song title', 'title': 'Title', 'type': 'string'}, 'album_id': {'description': 'Album ID', 'title': 'Album Id', 'type': 'integer'}, 'album_title': {'description': 'Album title', 'title': 'Album Title', 'type': 'string'}, 'duration': {'description': 'Duration in seconds', 'title': 'Duration', 'type': 'integer'}, 'artists': {'description': 'List of artists', 'items': {'properties': {'id': {'description': 'Artist ID', 'title': 'Id', 'type': 'integer'}, 'name': {'description': 'Artist name', 'title': 'Name', 'type': 'string'}}, 'required': ['id', 'name'], 'title': 'QueueSongArtist', 'type': 'object'}, 'title': 'Artists', 'type': 'array'}, 'position': {'description': 'Position in the queue', 'title': 'Position', 'type': 'integer'}}, 'required': ['song_id', 'title', 'album_id', 'album_title', 'duration', 'artists', 'position'], 'title': 'QueueSong', 'type': 'object'}, 'type': 'array'}
+
+  - add_to_queue(): Add a song, album, or playlist to the queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'song_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the song to add.', 'title': 'Song Id'}, 'album_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the album to add.', 'title': 'Album Id'}, 'playlist_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'The ID of the playlist to add.', 'title': 'Playlist Id'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - remove_song_from_queue(): Remove a song from the queue by position.
+    Input schema: {'properties': {'position': {'description': 'The position of the song in the queue to remove.', 'title': 'Position', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['position', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - clear_song_queue(): Clear the entire song queue.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_volume(): Show the current volume level.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'properties': {'volume': {'description': 'Current volume level (0-100)', 'title': 'Volume', 'type': 'integer'}}, 'required': ['volume'], 'type': 'object'}
+
+  - set_volume(): Set the volume level.
+    Input schema: {'properties': {'volume': {'description': 'Volume level (0-100).', 'title': 'Volume', 'type': 'integer'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['volume', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'confirm_message': {'description': 'Confirmation message', 'title': 'Confirm Message', 'type': 'string'}}, 'required': ['confirm_message'], 'type': 'object'}
+
+  - show_premium_plans(): Show available premium subscription plans.
+    Input schema: no input parameters
+
+  - subscribe_premium(): Subscribe to a premium plan.
+    Input schema: {'properties': {'payment_card_id': {'description': 'The ID of the payment card to use.', 'title': 'Payment Card Id', 'type': 'integer'}, 'duration': {'description': 'Subscription duration - "monthly" or "yearly".', 'title': 'Duration', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}}, 'required': ['payment_card_id', 'duration', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'premium_subscription_id': {'description': 'ID of the premium subscription', 'title': 'Premium Subscription Id', 'type': 'integer'}}, 'required': ['message', 'premium_subscription_id'], 'type': 'object'}
+
+  - show_premium_subscriptions(): Show premium subscription history.
+    Input schema: {'properties': {'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'page_index': {'default': 0, 'description': 'The index of the page to return. Defaults to 0.', 'title': 'Page Index', 'type': 'integer'}, 'page_limit': {'default': 5, 'description': 'Max results per page (1-20). Defaults to 5.', 'title': 'Page Limit', 'type': 'integer'}}, 'required': ['access_token'], 'type': 'object'}
+    Output schema: {'description': 'List of premium subscriptions', 'items': {'properties': {'premium_subscription_id': {'description': 'Unique subscription ID', 'title': 'Premium Subscription Id', 'type': 'integer'}, 'duration': {'description': 'Subscription duration', 'title': 'Duration', 'type': 'string'}, 'payment_card_id': {'description': 'Payment card ID used', 'title': 'Payment Card Id', 'type': 'integer'}, 'start_date': {'description': 'Subscription start date', 'title': 'Start Date', 'type': 'string'}, 'end_date': {'description': 'Subscription end date', 'title': 'End Date', 'type': 'string'}, 'is_active': {'description': 'Whether the subscription is active', 'title': 'Is Active', 'type': 'boolean'}}, 'required': ['premium_subscription_id', 'duration', 'payment_card_id', 'start_date', 'end_date', 'is_active'], 'title': 'PremiumSubscription', 'type': 'object'}, 'type': 'array'}
+
+  - download_premium_subscription_receipt(): Download a receipt for a premium subscription.
+    Input schema: {'properties': {'premium_subscription_id': {'description': 'The ID of the premium subscription.', 'title': 'Premium Subscription Id', 'type': 'integer'}, 'file_system_access_token': {'description': 'Access token for the file system app.', 'title': 'File System Access Token', 'type': 'string'}, 'access_token': {'description': 'Access token obtained from spotify app login.', 'title': 'Access Token', 'type': 'string'}, 'download_to_file_path': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': 'File path to download the receipt to.', 'title': 'Download To File Path'}, 'overwrite': {'default': False, 'description': 'Whether to overwrite existing file. Defaults to False.', 'title': 'Overwrite', 'type': 'boolean'}}, 'required': ['premium_subscription_id', 'file_system_access_token', 'access_token'], 'type': 'object'}
+    Output schema: {'properties': {'message': {'description': 'Confirmation message', 'title': 'Message', 'type': 'string'}, 'file_path': {'description': 'Path to the downloaded receipt', 'title': 'File Path', 'type': 'string'}}, 'required': ['message', 'file_path'], 'type': 'object'}
+
+  - complete_task(): Mark the currently active task as complete with the given answer.
+    Input schema: {'properties': {'answer': {'anyOf': [{'type': 'string'}, {'type': 'integer'}, {'type': 'number'}, {'type': 'null'}], 'default': None, 'description': 'The answer to the task. Should be a single entity or number,', 'title': 'Answer'}, 'status': {'default': None, 'description': 'Use "fail" to explicitly mark the task as unsolvable.', 'title': 'Status', 'type': 'string'}}, 'type': 'object'}
+    Output schema: {'properties': {'complete_message': {'description': 'Confirmation message', 'title': 'Complete Message', 'type': 'string'}}, 'required': ['complete_message'], 'type': 'object'}
+
+
+Args:
+    code (`str`): The Python code to be executed.
+
+Returns:
+    `ToolResponse`: The response containing the execution output.
+
+
+============================================================
+Task ID: c901732_3
+Supervisor: MainUserMunch({'first_name': 'Jeremy', 'last_name': 'Calhoun', 'email': 'jer.calhoun@gmail.com', 'phone_number': '2786837088'})
+Instruction: Play the most listened to song on Spotify from the Velvet Underground album.
+============================================================
+
+============= STEP: 1 ===========
+Friday(thinking): The task is to play the most listened to song on Spotify from the Velvet Underground album. Let me break this down:
+
+1. First, I need to get the supervisor's account passwords to find the Spotify credentials
+2. Login to Spotify
+3. Search for albums by "Velvet Underground"
+4. Find the album titled "Velvet Underground" (or similar)
+5. Get the songs from that album
+6. Find the one with the most plays (most listened to)
+7. Play that song
+
+Let me start by getting the account passwords and then logging into Spotify.
+{
+    "type": "tool_use",
+    "id": "call_2987bed9d4174faa9ec2b308",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Step 1: Get account passwords to find Spotify credentials\npasswords = call_tool('show_account_passwords')\nprint(passwords)\n"
+    },
+    "raw_input": "{\"code\": \"# Step 1: Get account passwords to find Spotify credentials\\npasswords = call_tool('show_account_passwords')\\nprint(passwords)\\n\"}"
+}
+
+==TOOL SERVER: show_account_passwords, arguments={}==
+system: {
+    "type": "tool_result",
+    "id": "call_2987bed9d4174faa9ec2b308",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_account_passwords({}): [{'account_name': 'amazon', 'password': '^]edBmJ'}, {'account_name': 'file_system', 'password': 'wSDeBSu'}, {'account_name': 'gmail', 'password': 'oHzC[A3'}, {'account_name': 'phone', 'password': 'fC4+W[E'}, {'account_name': 'simple_note', 'password': '9vS+=3C'}, {'account_name': 'splitwise', 'password': 'n_a{v3J'}, {'account_name': 'spotify', 'password': 'a42EQ0j'}, {'account_name': 'todoist', 'password': '70P}yn2'}, {'account_name': 'venmo', 'password': '7vte5ic'}]</tool_call_result>\n[{'account_name': 'amazon', 'password': '^]edBmJ'}, {'account_name': 'file_system', 'password': 'wSDeBSu'}, {'account_name': 'gmail', 'password': 'oHzC[A3'}, {'account_name': 'phone', 'password': 'fC4+W[E'}, {'account_name': 'simple_note', 'password': '9vS+=3C'}, {'account_name': 'splitwise', 'password': 'n_a{v3J'}, {'account_name': 'spotify', 'password': 'a42EQ0j'}, {'account_name': 'todoist', 'password': '70P}yn2'}, {'account_name': 'venmo', 'password': '7vte5ic'}]\n"
+        }
+    ]
+}
+============= STEP: 2 ===========
+Friday(thinking): Good, I have the Spotify password: `a42EQ0j`. The email from the task is `jer.calhoun@gmail.com`. Now let me login to Spotify.
+{
+    "type": "tool_use",
+    "id": "call_f5d2531616264468912474f2",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Step 2: Login to Spotify\nspotify_token = call_tool('spotify_login', username='jer.calhoun@gmail.com', password='a42EQ0j')\nprint(spotify_token)\n"
+    },
+    "raw_input": "{\"code\": \"# Step 2: Login to Spotify\\nspotify_token = call_tool('spotify_login', username='jer.calhoun@gmail.com', password='a42EQ0j')\\nprint(spotify_token)\\n\"}"
+}
+==TOOL SERVER: spotify_login, arguments={'username': 'jer.calhoun@gmail.com', 'password': 'a42EQ0j'}==
+system: {
+    "type": "tool_result",
+    "id": "call_f5d2531616264468912474f2",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>spotify_login({'username': 'jer.calhoun@gmail.com', 'password': 'a42EQ0j'}): {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'token_type': 'Bearer'}</tool_call_result>\n{'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'token_type': 'Bearer'}\n"
+        }
+    ]
+}
+============= STEP: 3 ===========
+Friday(thinking): I need to:
+1. Search for albums by "The Velvet Underground"
+2. Find the album and get its songs
+3. Find the most played song from that album
+4. Play that song
+
+Let me first search for the Velvet Underground album.
+{
+    "type": "tool_use",
+    "id": "call_a074e8859bd241ad98dc6c55",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Step 3: Search for Velvet Underground albums\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\nalbums = call_tool('search_albums', query='Velvet Underground', page_limit=20)\nprint(albums)\n"
+    },
+    "raw_input": "{\"code\": \"# Step 3: Search for Velvet Underground albums\\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\\nalbums = call_tool('search_albums', query='Velvet Underground', page_limit=20)\\nprint(albums)\\n\"}"
+}
+==TOOL SERVER: search_albums, arguments={'query': 'Velvet Underground', 'page_limit': 20}==
+system: {
+    "type": "tool_result",
+    "id": "call_a074e8859bd241ad98dc6c55",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_albums({'query': 'Velvet Underground', 'page_limit': 20}): []</tool_call_result>\n[]\n"
+        }
+    ]
+}
+============= STEP: 4 ===========
+Friday(thinking): The goal is to play the most listened to song on Spotify from the Velvet Underground album. The search returned no results for "Velvet Underground". Let me try different search variations. Maybe it's "The Velvet Underground" or I should search for songs instead. Let me try searching for the album with different terms, and also try searching songs.
+{
+    "type": "tool_use",
+    "id": "call_bfb94d7300ad46f680baa306",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Try different search variations\nalbums1 = call_tool('search_albums', query='The Velvet Underground', page_limit=20)\nprint(\"The Velvet Underground:\", albums1)\n\nsongs1 = call_tool('search_songs', query='Velvet Underground', page_limit=20)\nprint(\"Songs:\", songs1)\n"
+    },
+    "raw_input": "{\"code\": \"# Try different search variations\\nalbums1 = call_tool('search_albums', query='The Velvet Underground', page_limit=20)\\nprint(\\\"The Velvet Underground:\\\", albums1)\\n\\nsongs1 = call_tool('search_songs', query='Velvet Underground', page_limit=20)\\nprint(\\\"Songs:\\\", songs1)\\n\"}"
+}
+==TOOL SERVER: search_albums, arguments={'query': 'The Velvet Underground', 'page_limit': 20}==
+==TOOL SERVER: search_songs, arguments={'query': 'Velvet Underground', 'page_limit': 20}==
+system: {
+    "type": "tool_result",
+    "id": "call_bfb94d7300ad46f680baa306",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_albums({'query': 'The Velvet Underground', 'page_limit': 20}): []</tool_call_result>\nThe Velvet Underground: []\n<tool_call_error>search_songs({'query': 'Velvet Underground', 'page_limit': 20}): {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}</tool_call_error>\nSongs: {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}\n"
+        }
+    ]
+}
+============= STEP: 5 ===========
+Friday(thinking): The search_songs call failed because I passed page_limit as a string instead of an integer. Let me fix that. Also, let me try searching for artists first to find the Velvet Underground.
+{
+    "type": "tool_use",
+    "id": "call_7d370439b07c4d8c82ecfc15",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Search for Velvet Underground as an artist\nartists = call_tool('search_artists', query='Velvet Underground', page_limit=20)\nprint(\"Artists:\", artists)\n"
+    },
+    "raw_input": "{\"code\": \"# Search for Velvet Underground as an artist\\nartists = call_tool('search_artists', query='Velvet Underground', page_limit=20)\\nprint(\\\"Artists:\\\", artists)\\n\"}"
+}
+==TOOL SERVER: search_artists, arguments={'query': 'Velvet Underground', 'page_limit': 20}==
+system: {
+    "type": "tool_result",
+    "id": "call_7d370439b07c4d8c82ecfc15",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_artists({'query': 'Velvet Underground', 'page_limit': 20}): []</tool_call_result>\nArtists: []\n"
+        }
+    ]
+}
+============= STEP: 6 ===========
+Friday(thinking): The user wants me to play the most listened to song from the Velvet Underground album. I've searched for the album and artist but got no results. Let me try a different approach:
+
+1. First, I should search for songs with "Velvet Underground" in the title or artist name
+2. Or check the album library to see if there are any Velvet Underground albums
+3. Or search songs without the query parameter issue
+
+Let me try searching songs with just the query parameter properly, and also check the album library.
+{
+    "type": "tool_use",
+    "id": "call_d22e23f36d1f495f81731962",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Search for songs with Velvet Underground in the query\nsongs = call_tool('search_songs', query='Velvet Underground', page_limit=20)\nprint(\"Songs search:\", songs)\n\n# Also check album library for any Velvet Underground albums\nalbums_lib = call_tool('show_album_library', access_token=access_token, query='Velvet Underground', page_limit=20)\nprint(\"Album library:\", albums_lib)\n"
+    },
+    "raw_input": "{\"code\": \"# Search for songs with Velvet Underground in the query\\nsongs = call_tool('search_songs', query='Velvet Underground', page_limit=20)\\nprint(\\\"Songs search:\\\", songs)\\n\\n# Also check album library for any Velvet Underground albums\\nalbums_lib = call_tool('show_album_library', access_token=access_token, query='Velvet Underground', page_limit=20)\\nprint(\\\"Album library:\\\", albums_lib)\\n\"}"
+}
+==TOOL SERVER: search_songs, arguments={'query': 'Velvet Underground', 'page_limit': 20}==
+==TOOL SERVER: show_album_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'query': 'Velvet Underground', 'page_limit': 20}==
+system: {
+    "type": "tool_result",
+    "id": "call_d22e23f36d1f495f81731962",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_error>search_songs({'query': 'Velvet Underground', 'page_limit': 20}): {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}</tool_call_error>\nSongs search: {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}\n<tool_call_result>show_album_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'query': 'Velvet Underground', 'page_limit': 20}): [{'album_id': 9, 'title': 'Mystical Crescendo', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.4, 'like_count': 36, 'review_count': 12, 'release_date': '2022-09-27T00:38:12', 'song_ids': [44, 45, 46], 'added_at': '2022-09-13T22:19:47'}, {'album_id': 2, 'title': 'Celestial Harmonies', 'genre': 'R&B', 'artists': [{'id': 32, 'name': 'Lucas Grey'}], 'rating': 3.6, 'like_count': 44, 'review_count': 17, 'release_date': '2022-05-21T21:55:36', 'song_ids': [8, 9, 10], 'added_at': '2022-10-29T01:31:59'}, {'album_id': 6, 'title': 'Ethereal Rhapsody', 'genre': 'indie', 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}], 'rating': 3.9, 'like_count': 37, 'review_count': 18, 'release_date': '2021-04-02T04:32:45', 'song_ids': [29, 30, 31, 32], 'added_at': '2023-01-01T11:00:56'}, {'album_id': 17, 'title': 'Enchanted Melodies', 'genre': 'classical', 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}], 'rating': 3.6, 'like_count': 40, 'review_count': 17, 'release_date': '2020-10-15T13:57:09', 'song_ids': [77, 78, 79], 'added_at': '2023-05-08T06:15:42'}]</tool_call_result>\nAlbum library: [{'album_id': 9, 'title': 'Mystical Crescendo', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.4, 'like_count': 36, 'review_count': 12, 'release_date': '2022-09-27T00:38:12', 'song_ids': [44, 45, 46], 'added_at': '2022-09-13T22:19:47'}, {'album_id': 2, 'title': 'Celestial Harmonies', 'genre': 'R&B', 'artists': [{'id': 32, 'name': 'Lucas Grey'}], 'rating': 3.6, 'like_count': 44, 'review_count': 17, 'release_date': '2022-05-21T21:55:36', 'song_ids': [8, 9, 10], 'added_at': '2022-10-29T01:31:59'}, {'album_id': 6, 'title': 'Ethereal Rhapsody', 'genre': 'indie', 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}], 'rating': 3.9, 'like_count': 37, 'review_count': 18, 'release_date': '2021-04-02T04:32:45', 'song_ids': [29, 30, 31, 32], 'added_at': '2023-01-01T11:00:56'}, {'album_id': 17, 'title': 'Enchanted Melodies', 'genre': 'classical', 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}], 'rating': 3.6, 'like_count': 40, 'review_count': 17, 'release_date': '2020-10-15T13:57:09', 'song_ids': [77, 78, 79], 'added_at': '2023-05-08T06:15:42'}]\n"
+        }
+    ]
+}
+============= STEP: 7 ===========
+Friday(thinking): The search results don't show any "Velvet Underground" album. The album library search for "Velvet Underground" returned unrelated albums. Let me look at the full album library to find any album with "Velvet Underground" in its name, and also search for artists with that name. Let me also try searching all albums without a query to see the full list.
+
+Wait - "Velvet Underground" could refer to the self-titled album "The Velvet Underground" by the band The Velvet Underground. Let me browse all albums in the library and also search for the artist more broadly.
+{
+    "type": "tool_use",
+    "id": "call_6f7881042b46454f882740c2",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Browse all albums in library without query filter\nall_albums = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=0)\nprint(\"Page 0:\", len(all_albums))\nfor a in all_albums:\n    print(f\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\")\n\nall_albums2 = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=1)\nprint(\"Page 1:\", len(all_albums2))\nfor a in all_albums2:\n    print(f\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\")\n\nall_albums3 = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=2)\nprint(\"Page 2:\", len(all_albums3))\nfor a in all_albums3:\n    print(f\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\")\n"
+    },
+    "raw_input": "{\"code\": \"# Browse all albums in library without query filter\\nall_albums = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=0)\\nprint(\\\"Page 0:\\\", len(all_albums))\\nfor a in all_albums:\\n    print(f\\\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\\\")\\n\\nall_albums2 = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=1)\\nprint(\\\"Page 1:\\\", len(all_albums2))\\nfor a in all_albums2:\\n    print(f\\\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\\\")\\n\\nall_albums3 = call_tool('show_album_library', access_token=access_token, page_limit=20, page_index=2)\\nprint(\\\"Page 2:\\\", len(all_albums3))\\nfor a in all_albums3:\\n    print(f\\\"  ID={a['album_id']}, Title='{a['title']}', Artists={[ar['name'] for ar in a['artists']]}\\\")\\n\"}"
+}
+
+==TOOL SERVER: show_album_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 0}==
+==TOOL SERVER: show_album_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 1}==
+==TOOL SERVER: show_album_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 2}==
+system: {
+    "type": "tool_result",
+    "id": "call_6f7881042b46454f882740c2",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_album_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 0}): [{'album_id': 17, 'title': 'Enchanted Melodies', 'genre': 'classical', 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}], 'rating': 3.6, 'like_count': 40, 'review_count': 17, 'release_date': '2020-10-15T13:57:09', 'song_ids': [77, 78, 79], 'added_at': '2023-05-08T06:15:42'}, {'album_id': 6, 'title': 'Ethereal Rhapsody', 'genre': 'indie', 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}], 'rating': 3.9, 'like_count': 37, 'review_count': 18, 'release_date': '2021-04-02T04:32:45', 'song_ids': [29, 30, 31, 32], 'added_at': '2023-01-01T11:00:56'}, {'album_id': 2, 'title': 'Celestial Harmonies', 'genre': 'R&B', 'artists': [{'id': 32, 'name': 'Lucas Grey'}], 'rating': 3.6, 'like_count': 44, 'review_count': 17, 'release_date': '2022-05-21T21:55:36', 'song_ids': [8, 9, 10], 'added_at': '2022-10-29T01:31:59'}, {'album_id': 9, 'title': 'Mystical Crescendo', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.4, 'like_count': 36, 'review_count': 12, 'release_date': '2022-09-27T00:38:12', 'song_ids': [44, 45, 46], 'added_at': '2022-09-13T22:19:47'}]</tool_call_result>\nPage 0: 4\n  ID=17, Title='Enchanted Melodies', Artists=['Mia Sullivan', 'Carter Knight']\n  ID=6, Title='Ethereal Rhapsody', Artists=['Noah Bennett', 'Ethan Wallace', 'Nova Harmony']\n  ID=2, Title='Celestial Harmonies', Artists=['Lucas Grey']\n  ID=9, Title='Mystical Crescendo', Artists=['Aria Sterling']\n<tool_call_result>show_album_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 1}): []</tool_call_result>\nPage 1: 0\n<tool_call_result>show_album_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 2}): []</tool_call_result>\nPage 2: 0\n"
+        }
+    ]
+}
+============= STEP: 8 ===========
+Friday(thinking): The user asked me to "Play the most listened to song on Spotify from the Velvet Underground album." However, I'm not finding any album called "Velvet Underground" in the user's library. I only see 4 albums:
+1. Enchanted Melodies
+2. Ethereal Rhapsody  
+3. Celestial Harmonies
+4. Mystical Crescendo
+
+None of these are by "Velvet Underground" or have that name.
+
+I also searched for "Velvet Underground" as an artist and got no results.
+
+Let me try a broader search - maybe I need to search all albums available on the platform, not just in the library. Let me use search_albums without limiting to library.
+{
+    "type": "tool_use",
+    "id": "call_aca5bbfddd854928a000d8c6",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Search for all albums on the platform, not just library\nall_albums_search = call_tool('search_albums', query='', page_limit=20, page_index=0)\nprint(\"All albums page 0:\", len(all_albums_search))\nfor a in all_albums_search:\n    print(f\"  ID={a['album_id']}, Title='{a['title']}', Artist='{a['artist_name']}'\")\n\nall_albums_search2 = call_tool('search_albums', query='', page_limit=20, page_index=1)\nprint(\"\\nAll albums page 1:\", len(all_albums_search2))\nfor a in all_albums_search2:\n    print(f\"  ID={a['album_id']}, Title='{a['title']}', Artist='{a['artist_name']}'\")\n"
+    },
+    "raw_input": "{\"code\": \"# Search for all albums on the platform, not just library\\nall_albums_search = call_tool('search_albums', query='', page_limit=20, page_index=0)\\nprint(\\\"All albums page 0:\\\", len(all_albums_search))\\nfor a in all_albums_search:\\n    print(f\\\"  ID={a['album_id']}, Title='{a['title']}', Artist='{a['artist_name']}'\\\")\\n\\nall_albums_search2 = call_tool('search_albums', query='', page_limit=20, page_index=1)\\nprint(\\\"\\\\nAll albums page 1:\\\", len(all_albums_search2))\\nfor a in all_albums_search2:\\n    print(f\\\"  ID={a['album_id']}, Title='{a['title']}', Artist='{a['artist_name']}'\\\")\\n\"}"
+}
+
+==TOOL SERVER: search_albums, arguments={'query': '', 'page_limit': 20, 'page_index': 0}==
+==TOOL SERVER: search_albums, arguments={'query': '', 'page_limit': 20, 'page_index': 1}==
+system: {
+    "type": "tool_result",
+    "id": "call_aca5bbfddd854928a000d8c6",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_albums({'query': '', 'page_limit': 20, 'page_index': 0}): []</tool_call_result>\nAll albums page 0: 0\n<tool_call_result>search_albums({'query': '', 'page_limit': 20, 'page_index': 1}): []</tool_call_result>\n\nAll albums page 1: 0\n"
+        }
+    ]
+}
+============= STEP: 9 ===========
+Friday(thinking): The user wants me to play the most listened to song from the "Velvet Underground" album. I've searched for albums with "Velvet Underground" in the title but found none. I've also searched the user's album library and found 4 albums, none of which are called "Velvet Underground". I've searched for all albums on the platform and got empty results.
+
+Let me think about this differently. Maybe "Velvet Underground" is the name of an artist, not an album title. Let me search for songs by an artist named "Velvet Underground" or check if there's a self-titled album by an artist called "Velvet Underground".
+
+Actually, wait. The task says "from the Velvet Underground album" - this could mean:
+1. An album titled "Velvet Underground" 
+2. An album by the artist "The Velvet Underground"
+
+I already searched for artists named "Velvet Underground" and got no results.
+
+Let me try searching for songs and look at the full catalog. Or maybe I need to search more broadly. Let me try searching for just "Velvet" to see what comes up.
+{
+    "type": "tool_use",
+    "id": "call_e3397101959f4c13b895cb2b",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Try searching with just \"Velvet\"\nalbums_velvet = call_tool('search_albums', query='Velvet', page_limit=20)\nprint(\"Albums with 'Velvet':\", albums_velvet)\n\nartists_velvet = call_tool('search_artists', query='Velvet', page_limit=20)\nprint(\"\\nArtists with 'Velvet':\", artists_velvet)\n\n# Also try searching for songs with Velvet\nsongs_velvet = call_tool('search_songs', query='Velvet', page_limit=20)\nprint(\"\\nSongs with 'Velvet':\", songs_velvet)\n"
+    },
+    "raw_input": "{\"code\": \"# Try searching with just \\\"Velvet\\\"\\nalbums_velvet = call_tool('search_albums', query='Velvet', page_limit=20)\\nprint(\\\"Albums with 'Velvet':\\\", albums_velvet)\\n\\nartists_velvet = call_tool('search_artists', query='Velvet', page_limit=20)\\nprint(\\\"\\\\nArtists with 'Velvet':\\\", artists_velvet)\\n\\n# Also try searching for songs with Velvet\\nsongs_velvet = call_tool('search_songs', query='Velvet', page_limit=20)\\nprint(\\\"\\\\nSongs with 'Velvet':\\\", songs_velvet)\\n\"}"
+}
+==TOOL SERVER: search_albums, arguments={'query': 'Velvet', 'page_limit': 20}==
+==TOOL SERVER: search_artists, arguments={'query': 'Velvet', 'page_limit': 20}==
+==TOOL SERVER: search_songs, arguments={'query': 'Velvet', 'page_limit': 20}==
+system: {
+    "type": "tool_result",
+    "id": "call_e3397101959f4c13b895cb2b",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_albums({'query': 'Velvet', 'page_limit': 20}): []</tool_call_result>\nAlbums with 'Velvet': []\n<tool_call_result>search_artists({'query': 'Velvet', 'page_limit': 20}): []</tool_call_result>\n\nArtists with 'Velvet': []\n<tool_call_error>search_songs({'query': 'Velvet', 'page_limit': 20}): {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}</tool_call_error>\n\nSongs with 'Velvet': {'content': [], 'metadata': {'message': 'Validation error. Reason: \\nartist_id: Input should be a valid integer, unable to parse string as an integer\\nalbum_id: Input should be a valid integer, unable to parse string as an integer'}, 'isError': True}\n"
+        }
+    ]
+}
+============= STEP: 10 ===========
+Friday(thinking): The user is asking me to play the most listened to song from the "Velvet Underground" album. I've searched for this album and artist but haven't found anything. Let me look at the albums that are actually in the user's library:
+
+From the previous results:
+1. Enchanted Melodies (ID=17) - Artists: Mia Sullivan, Carter Knight
+2. Ethereal Rhapsody (ID=6) - Artists: Noah Bennett, Ethan Wallace, Nova Harmony
+3. Celestial Harmonies (ID=2) - Artist: Lucas Grey
+4. Mystical Crescendo (ID=9) - Artist: Aria Sterling
+
+None of these are "Velvet Underground". The search for "Velvet Underground" returned empty results for albums, artists, and songs.
+
+Wait, let me reconsider. Maybe "Velvet Underground" is the name of an album, not an artist. Let me look more carefully at the albums in the library. None of them are called "Velvet Underground".
+
+I've tried multiple search variations:
+- "Velvet Underground"
+- "The Velvet Underground"
+- "Velvet"
+
+All returned empty results. This suggests that there is no album called "Velvet Underground" in this Spotify instance.
+
+However, the task says "from the Velvet Underground album" - this implies the album exists. Let me try a different approach. Maybe I need to search for songs and filter by album title, or maybe the album exists but isn't in the library yet.
+
+Let me try to get all songs in the library and see if any are from an album with "Velvet" in the title.
+{
+    "type": "tool_use",
+    "id": "call_1f3656b52a5a4effa88983ea",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Get all songs in library to check for Velvet Underground album\nall_songs = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=0)\nprint(\"Songs page 0:\", len(all_songs))\nfor s in all_songs:\n    print(f\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\")\n\nall_songs2 = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=1)\nprint(\"\\nSongs page 1:\", len(all_songs2))\nfor s in all_songs2:\n    print(f\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\")\n\nall_songs3 = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=2)\nprint(\"\\nSongs page 2:\", len(all_songs3))\nfor s in all_songs3:\n    print(f\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\")\n"
+    },
+    "raw_input": "{\"code\": \"# Get all songs in library to check for Velvet Underground album\\nall_songs = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=0)\\nprint(\\\"Songs page 0:\\\", len(all_songs))\\nfor s in all_songs:\\n    print(f\\\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\\\")\\n\\nall_songs2 = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=1)\\nprint(\\\"\\\\nSongs page 1:\\\", len(all_songs2))\\nfor s in all_songs2:\\n    print(f\\\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\\\")\\n\\nall_songs3 = call_tool('show_song_library', access_token=access_token, page_limit=20, page_index=2)\\nprint(\\\"\\\\nSongs page 2:\\\", len(all_songs3))\\nfor s in all_songs3:\\n    print(f\\\"  ID={s['song_id']}, Title='{s['title']}', Album='{s['album_title']}' (ID={s['album_id']})\\\")\\n\"}"
+}
+==TOOL SERVER: show_song_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 0}==
+==TOOL SERVER: show_song_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 1}==
+==TOOL SERVER: show_song_library, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 2}==
+system: {
+    "type": "tool_result",
+    "id": "call_1f3656b52a5a4effa88983ea",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_song_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 0}): []</tool_call_result>\nSongs page 0: 0\n<tool_call_result>show_song_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 1}): []</tool_call_result>\n\nSongs page 1: 0\n<tool_call_result>show_song_library({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'page_limit': 20, 'page_index': 2}): []</tool_call_result>\n\nSongs page 2: 0\n"
+        }
+    ]
+}
+Friday(thinking): The user wants me to play the most listened to song on Spotify from the Velvet Underground album.
+I have been trying to find the Velvet Underground album on Spotify.
+I searched for "Velvet Underground", "The Velvet Underground", "Velvet" in albums and artists, but got no results.
+I also looked at the user's album library, which contains 4 albums:
+- Enchanted Melodies
+- Ethereal Rhapsody
+- Celestial Harmonies
+- Mystical Crescendo
+None of these are by Velvet Underground.
+
+The song library is empty.
+
+Let me review the available Spotify APIs to see if there's a way to get all albums on the platform or if I missed something.
+Wait, I haven't checked the API docs for `show_album_library` or `search_albums` properly.
+Maybe I can get the top played songs and filter by album?
+Let me check `get_top_played_songs` or similar APIs.
+Let's see what APIs are available for spotify.
+{
+    "type": "tool_use",
+    "id": "call_51264d58a58a4f679f206a25",
+    "name": "run_python_code",
+    "input": {
+        "code": "apis = call_tool('show_api_descriptions', app_name='spotify')\nprint(apis)\n"
+    },
+    "raw_input": "{\"code\": \"apis = call_tool('show_api_descriptions', app_name='spotify')\\nprint(apis)\\n\"}"
+}
+
+============= STEP: 1 ===========
+Friday(thinking): The tool call to show_api_descriptions for spotify was made but I don't see the result. Let me try again and also look more broadly for the Velvet Underground album. Let me search more broadly - maybe try different queries or look at all albums available on the platform.
+{
+    "type": "tool_use",
+    "id": "call_facf45d27aed4b50a512823e",
+    "name": "run_python_code",
+    "input": {
+        "code": "apis = call_tool('show_api_descriptions', app_name='spotify')\nprint(apis)"
+    },
+    "raw_input": "{\"code\": \"apis = call_tool('show_api_descriptions', app_name='spotify')\\nprint(apis)\"}"
+}
+
+==TOOL SERVER: show_api_descriptions, arguments={'app_name': 'spotify'}==
+system: {
+    "type": "tool_result",
+    "id": "call_facf45d27aed4b50a512823e",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_api_descriptions({'app_name': 'spotify'}): [{'name': 'show_account', 'description': 'Show your account information. Unlike show_profile, this includes private information.'}, {'name': 'signup', 'description': 'Sign up to create account.'}, {'name': 'delete_account', 'description': 'Delete your account.'}, {'name': 'update_account_name', 'description': 'Update your first or last name in the account profile.'}, {'name': 'login', 'description': 'Login to your account.'}, {'name': 'logout', 'description': 'Logout from your account.'}, {'name': 'send_verification_code', 'description': 'Send account verification code to your email address.'}, {'name': 'verify_account', 'description': 'Verify your account using the verification code sent to your email address.'}, {'name': 'send_password_reset_code', 'description': 'Send password reset code to your email address.'}, {'name': 'reset_password', 'description': 'Reset your password using the password reset code sent to your email address.'}, {'name': 'show_profile', 'description': 'Show public profile information of a user.'}, {'name': 'search_users', 'description': 'Search users by name or email address.'}, {'name': 'show_genres', 'description': 'Show the list of all music genres.'}, {'name': 'search_songs', 'description': 'Search for songs with a query.'}, {'name': 'show_song', 'description': 'Get details of a specific song.'}, {'name': 'show_song_privates', 'description': 'Show information about the song that is private to the user.'}, {'name': 'like_song', 'description': 'Like a song.'}, {'name': 'unlike_song', 'description': 'Unlike a song.'}, {'name': 'show_liked_songs', 'description': 'Get a list of songs you have liked.'}, {'name': 'search_albums', 'description': 'Search for albums with a query.'}, {'name': 'show_album', 'description': 'Get details of a specific album.'}, {'name': 'show_album_privates', 'description': 'Show information about the album that is private to the user.'}, {'name': 'like_album', 'description': 'Like a album.'}, {'name': 'unlike_album', 'description': 'Unlike a album.'}, {'name': 'show_liked_albums', 'description': 'Get a list of albums you have liked.'}, {'name': 'show_playlist_library', 'description': 'Search or show a list of playlists in your playlist library.'}, {'name': 'search_playlists', 'description': 'Search for playlists with a query. It will search over all public playlists and your own private playlists. If the access token is not provided, it will only search public playlists.'}, {'name': 'create_playlist', 'description': 'Create a new playlist.'}, {'name': 'show_playlist', 'description': \"Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.\"}, {'name': 'update_playlist', 'description': 'Update a playlist title or privacy.'}, {'name': 'delete_playlist', 'description': 'Delete a playlist.'}, {'name': 'show_playlist_privates', 'description': 'Show information about the playlist that is private to the user.'}, {'name': 'like_playlist', 'description': 'Like a playlist.'}, {'name': 'unlike_playlist', 'description': 'Unlike a playlist.'}, {'name': 'show_liked_playlists', 'description': 'Get a list of playlists you have liked.'}, {'name': 'search_artists', 'description': 'Search for artists with a query.'}, {'name': 'show_artist', 'description': 'Get details of a specific artist.'}, {'name': 'show_artist_following', 'description': 'Show if the user is following the artist.'}, {'name': 'show_song_library', 'description': 'Search or show a list of songs in your song library.'}, {'name': 'add_song_to_library', 'description': 'Add a song to your song library.'}, {'name': 'remove_song_from_library', 'description': 'Remove a song from your song library.'}, {'name': 'show_album_library', 'description': 'Search or show a list of albums in your album library.'}, {'name': 'add_album_to_library', 'description': 'Add an album to your album library.'}, {'name': 'remove_album_from_library', 'description': 'Remove an album from your album library.'}, {'name': 'add_song_to_playlist', 'description': 'Add a song to a playlist.'}, {'name': 'remove_song_from_playlist', 'description': 'Remove a song from a playlist.'}, {'name': 'show_downloaded_songs', 'description': 'Search or show a list of your downloaded songs.'}, {'name': 'download_song', 'description': 'Download a song.'}, {'name': 'remove_downloaded_song', 'description': 'Remove a song from downloads.'}, {'name': 'show_following_artists', 'description': 'Search or show a list of artists you are following.'}, {'name': 'follow_artist', 'description': 'Follow an artist.'}, {'name': 'unfollow_artist', 'description': 'Unfollow an artist.'}, {'name': 'show_song_reviews', 'description': 'Search or show a list of reviews for a song.'}, {'name': 'review_song', 'description': 'Rate or review a song.'}, {'name': 'update_song_review', 'description': 'Update a song review.'}, {'name': 'delete_song_review', 'description': 'Delete a song review.'}, {'name': 'show_song_review', 'description': 'Show a song review.'}, {'name': 'show_album_reviews', 'description': 'Search or show a list of reviews for an album.'}, {'name': 'review_album', 'description': 'Rate or review an album.'}, {'name': 'update_album_review', 'description': 'Update an album review.'}, {'name': 'delete_album_review', 'description': 'Delete an album review.'}, {'name': 'show_album_review', 'description': 'Show an album review.'}, {'name': 'show_playlist_reviews', 'description': \"Search or show a list of reviews for your playlist or others' public playlist.\"}, {'name': 'review_playlist', 'description': 'Rate or review a playlist.'}, {'name': 'update_playlist_review', 'description': 'Update a playlist review.'}, {'name': 'delete_playlist_review', 'description': 'Delete a playlist review.'}, {'name': 'show_playlist_review', 'description': 'Show a playlist review.'}, {'name': 'show_payment_cards', 'description': 'Get a list of users payment cards.'}, {'name': 'add_payment_card', 'description': 'Add a new payment card.'}, {'name': 'show_payment_card', 'description': 'Get details of a payment card.'}, {'name': 'update_payment_card', 'description': 'Update payment card information.'}, {'name': 'delete_payment_card', 'description': 'Delete payment card information.'}, {'name': 'show_current_song', 'description': 'Show details of the current song on the queue.'}, {'name': 'play_music', 'description': 'Play music based on various criteria. You can pass, at most, any one of queue_position, song_id, album_id or playlist_id. If one of song_id, album_id or playlist_id is passed, that song, album or playlist will be added to the queue and played. Otherwise, the queue will remain unchanged. If queue_position is passed, the song at that position in the queue will be played. If none is passed, the current song in the queue will be played.'}, {'name': 'pause_music', 'description': 'Pause the currently playing song.'}, {'name': 'previous_song', 'description': 'Go to the previous song in the song queue.'}, {'name': 'next_song', 'description': 'Go to the next song in the song queue.'}, {'name': 'move_song_in_queue', 'description': 'Move a song in the queue to a new position.'}, {'name': 'seek_song', 'description': 'Seek the current song to the given number of seconds.'}, {'name': 'loop_song', 'description': 'Set whether to loop the current song.'}, {'name': 'shuffle_song_queue', 'description': 'Shuffle songs in the music player queue.'}, {'name': 'show_song_queue', 'description': 'Get the music player song queue. Songs are played in the order of the queue in a cycle.'}, {'name': 'add_to_queue', 'description': 'Add a song, album or playlist to the music player song queue.'}, {'name': 'clear_song_queue', 'description': 'Clear the music player song queue.'}, {'name': 'remove_song_from_queue', 'description': 'Remove a song at the given position from the music player song queue.'}, {'name': 'show_volume', 'description': 'Get the volume level of the music player.'}, {'name': 'set_volume', 'description': 'Set the volume level of the music player.'}, {'name': 'show_recommendations', 'description': 'Get personalized song recommendations for the user.'}, {'name': 'show_premium_plans', 'description': 'Show information about premium plans available.'}, {'name': 'subscribe_premium', 'description': 'Subscribe to premium membership.'}, {'name': 'show_premium_subscriptions', 'description': 'Show your premium subscription history.'}, {'name': 'download_premium_subscription_receipt', 'description': 'Download the receipt for a premium subscription.'}]</tool_call_result>\n[{'name': 'show_account', 'description': 'Show your account information. Unlike show_profile, this includes private information.'}, {'name': 'signup', 'description': 'Sign up to create account.'}, {'name': 'delete_account', 'description': 'Delete your account.'}, {'name': 'update_account_name', 'description': 'Update your first or last name in the account profile.'}, {'name': 'login', 'description': 'Login to your account.'}, {'name': 'logout', 'description': 'Logout from your account.'}, {'name': 'send_verification_code', 'description': 'Send account verification code to your email address.'}, {'name': 'verify_account', 'description': 'Verify your account using the verification code sent to your email address.'}, {'name': 'send_password_reset_code', 'description': 'Send password reset code to your email address.'}, {'name': 'reset_password', 'description': 'Reset your password using the password reset code sent to your email address.'}, {'name': 'show_profile', 'description': 'Show public profile information of a user.'}, {'name': 'search_users', 'description': 'Search users by name or email address.'}, {'name': 'show_genres', 'description': 'Show the list of all music genres.'}, {'name': 'search_songs', 'description': 'Search for songs with a query.'}, {'name': 'show_song', 'description': 'Get details of a specific song.'}, {'name': 'show_song_privates', 'description': 'Show information about the song that is private to the user.'}, {'name': 'like_song', 'description': 'Like a song.'}, {'name': 'unlike_song', 'description': 'Unlike a song.'}, {'name': 'show_liked_songs', 'description': 'Get a list of songs you have liked.'}, {'name': 'search_albums', 'description': 'Search for albums with a query.'}, {'name': 'show_album', 'description': 'Get details of a specific album.'}, {'name': 'show_album_privates', 'description': 'Show information about the album that is private to the user.'}, {'name': 'like_album', 'description': 'Like a album.'}, {'name': 'unlike_album', 'description': 'Unlike a album.'}, {'name': 'show_liked_albums', 'description': 'Get a list of albums you have liked.'}, {'name': 'show_playlist_library', 'description': 'Search or show a list of playlists in your playlist library.'}, {'name': 'search_playlists', 'description': 'Search for playlists with a query. It will search over all public playlists and your own private playlists. If the access token is not provided, it will only search public playlists.'}, {'name': 'create_playlist', 'description': 'Create a new playlist.'}, {'name': 'show_playlist', 'description': \"Get detailed information about a specific playlist. You can view your own playlists or others' playlists if they are public.\"}, {'name': 'update_playlist', 'description': 'Update a playlist title or privacy.'}, {'name': 'delete_playlist', 'description': 'Delete a playlist.'}, {'name': 'show_playlist_privates', 'description': 'Show information about the playlist that is private to the user.'}, {'name': 'like_playlist', 'description': 'Like a playlist.'}, {'name': 'unlike_playlist', 'description': 'Unlike a playlist.'}, {'name': 'show_liked_playlists', 'description': 'Get a list of playlists you have liked.'}, {'name': 'search_artists', 'description': 'Search for artists with a query.'}, {'name': 'show_artist', 'description': 'Get details of a specific artist.'}, {'name': 'show_artist_following', 'description': 'Show if the user is following the artist.'}, {'name': 'show_song_library', 'description': 'Search or show a list of songs in your song library.'}, {'name': 'add_song_to_library', 'description': 'Add a song to your song library.'}, {'name': 'remove_song_from_library', 'description': 'Remove a song from your song library.'}, {'name': 'show_album_library', 'description': 'Search or show a list of albums in your album library.'}, {'name': 'add_album_to_library', 'description': 'Add an album to your album library.'}, {'name': 'remove_album_from_library', 'description': 'Remove an album from your album library.'}, {'name': 'add_song_to_playlist', 'description': 'Add a song to a playlist.'}, {'name': 'remove_song_from_playlist', 'description': 'Remove a song from a playlist.'}, {'name': 'show_downloaded_songs', 'description': 'Search or show a list of your downloaded songs.'}, {'name': 'download_song', 'description': 'Download a song.'}, {'name': 'remove_downloaded_song', 'description': 'Remove a song from downloads.'}, {'name': 'show_following_artists', 'description': 'Search or show a list of artists you are following.'}, {'name': 'follow_artist', 'description': 'Follow an artist.'}, {'name': 'unfollow_artist', 'description': 'Unfollow an artist.'}, {'name': 'show_song_reviews', 'description': 'Search or show a list of reviews for a song.'}, {'name': 'review_song', 'description': 'Rate or review a song.'}, {'name': 'update_song_review', 'description': 'Update a song review.'}, {'name': 'delete_song_review', 'description': 'Delete a song review.'}, {'name': 'show_song_review', 'description': 'Show a song review.'}, {'name': 'show_album_reviews', 'description': 'Search or show a list of reviews for an album.'}, {'name': 'review_album', 'description': 'Rate or review an album.'}, {'name': 'update_album_review', 'description': 'Update an album review.'}, {'name': 'delete_album_review', 'description': 'Delete an album review.'}, {'name': 'show_album_review', 'description': 'Show an album review.'}, {'name': 'show_playlist_reviews', 'description': \"Search or show a list of reviews for your playlist or others' public playlist.\"}, {'name': 'review_playlist', 'description': 'Rate or review a playlist.'}, {'name': 'update_playlist_review', 'description': 'Update a playlist review.'}, {'name': 'delete_playlist_review', 'description': 'Delete a playlist review.'}, {'name': 'show_playlist_review', 'description': 'Show a playlist review.'}, {'name': 'show_payment_cards', 'description': 'Get a list of users payment cards.'}, {'name': 'add_payment_card', 'description': 'Add a new payment card.'}, {'name': 'show_payment_card', 'description': 'Get details of a payment card.'}, {'name': 'update_payment_card', 'description': 'Update payment card information.'}, {'name': 'delete_payment_card', 'description': 'Delete payment card information.'}, {'name': 'show_current_song', 'description': 'Show details of the current song on the queue.'}, {'name': 'play_music', 'description': 'Play music based on various criteria. You can pass, at most, any one of queue_position, song_id, album_id or playlist_id. If one of song_id, album_id or playlist_id is passed, that song, album or playlist will be added to the queue and played. Otherwise, the queue will remain unchanged. If queue_position is passed, the song at that position in the queue will be played. If none is passed, the current song in the queue will be played.'}, {'name': 'pause_music', 'description': 'Pause the currently playing song.'}, {'name': 'previous_song', 'description': 'Go to the previous song in the song queue.'}, {'name': 'next_song', 'description': 'Go to the next song in the song queue.'}, {'name': 'move_song_in_queue', 'description': 'Move a song in the queue to a new position.'}, {'name': 'seek_song', 'description': 'Seek the current song to the given number of seconds.'}, {'name': 'loop_song', 'description': 'Set whether to loop the current song.'}, {'name': 'shuffle_song_queue', 'description': 'Shuffle songs in the music player queue.'}, {'name': 'show_song_queue', 'description': 'Get the music player song queue. Songs are played in the order of the queue in a cycle.'}, {'name': 'add_to_queue', 'description': 'Add a song, album or playlist to the music player song queue.'}, {'name': 'clear_song_queue', 'description': 'Clear the music player song queue.'}, {'name': 'remove_song_from_queue', 'description': 'Remove a song at the given position from the music player song queue.'}, {'name': 'show_volume', 'description': 'Get the volume level of the music player.'}, {'name': 'set_volume', 'description': 'Set the volume level of the music player.'}, {'name': 'show_recommendations', 'description': 'Get personalized song recommendations for the user.'}, {'name': 'show_premium_plans', 'description': 'Show information about premium plans available.'}, {'name': 'subscribe_premium', 'description': 'Subscribe to premium membership.'}, {'name': 'show_premium_subscriptions', 'description': 'Show your premium subscription history.'}, {'name': 'download_premium_subscription_receipt', 'description': 'Download the receipt for a premium subscription.'}]\n"
+        }
+    ]
+}
+============= STEP: 2 ===========
+Friday(thinking): The task is: "Play the most listened to song on Spotify from the Velvet Underground album."
+
+I've been searching for Velvet Underground albums and artists but haven't found anything. Let me try a different approach:
+1. Maybe "Velvet Underground" is an album title, not an artist name
+2. Let me try searching for albums with "Underground" or just browse all available albums
+3. I should also try the show_album function with different IDs to see what albums exist
+
+Let me try searching for albums with "Underground" or just try to get album details by iterating through album IDs.
+{
+    "type": "tool_use",
+    "id": "call_830d02c7f5f8437995613616",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Try searching for \"Underground\"\nalbums_underground = call_tool('search_albums', query='Underground', page_limit=20)\nprint(\"Albums with 'Underground':\", albums_underground)\n\n# Try checking specific album IDs to see what exists\nfor album_id in range(1, 30):\n    try:\n        album = call_tool('show_album', album_id=album_id)\n        print(f\"Album ID {album_id}: {album['title']} by {album['artist_name']}\")\n    except:\n        pass\n"
+    },
+    "raw_input": "{\"code\": \"# Try searching for \\\"Underground\\\"\\nalbums_underground = call_tool('search_albums', query='Underground', page_limit=20)\\nprint(\\\"Albums with 'Underground':\\\", albums_underground)\\n\\n# Try checking specific album IDs to see what exists\\nfor album_id in range(1, 30):\\n    try:\\n        album = call_tool('show_album', album_id=album_id)\\n        print(f\\\"Album ID {album_id}: {album['title']} by {album['artist_name']}\\\")\\n    except:\\n        pass\\n\"}"
+}
+
+==TOOL SERVER: search_albums, arguments={'query': 'Underground', 'page_limit': 20}==
+==TOOL SERVER: show_album, arguments={'album_id': 1}==
+==TOOL SERVER: show_album, arguments={'album_id': 2}==
+==TOOL SERVER: show_album, arguments={'album_id': 3}==
+==TOOL SERVER: show_album, arguments={'album_id': 4}==
+==TOOL SERVER: show_album, arguments={'album_id': 5}==
+==TOOL SERVER: show_album, arguments={'album_id': 6}==
+==TOOL SERVER: show_album, arguments={'album_id': 7}==
+==TOOL SERVER: show_album, arguments={'album_id': 8}==
+==TOOL SERVER: show_album, arguments={'album_id': 9}==
+==TOOL SERVER: show_album, arguments={'album_id': 10}==
+==TOOL SERVER: show_album, arguments={'album_id': 11}==
+==TOOL SERVER: show_album, arguments={'album_id': 12}==
+==TOOL SERVER: show_album, arguments={'album_id': 13}==
+==TOOL SERVER: show_album, arguments={'album_id': 14}==
+==TOOL SERVER: show_album, arguments={'album_id': 15}==
+==TOOL SERVER: show_album, arguments={'album_id': 16}==
+==TOOL SERVER: show_album, arguments={'album_id': 17}==
+==TOOL SERVER: show_album, arguments={'album_id': 18}==
+==TOOL SERVER: show_album, arguments={'album_id': 19}==
+==TOOL SERVER: show_album, arguments={'album_id': 20}==
+==TOOL SERVER: show_album, arguments={'album_id': 21}==
+==TOOL SERVER: show_album, arguments={'album_id': 22}==
+==TOOL SERVER: show_album, arguments={'album_id': 23}==
+==TOOL SERVER: show_album, arguments={'album_id': 24}==
+==TOOL SERVER: show_album, arguments={'album_id': 25}==
+==TOOL SERVER: show_album, arguments={'album_id': 26}==
+==TOOL SERVER: show_album, arguments={'album_id': 27}==
+==TOOL SERVER: show_album, arguments={'album_id': 28}==
+==TOOL SERVER: show_album, arguments={'album_id': 29}==
+system: {
+    "type": "tool_result",
+    "id": "call_830d02c7f5f8437995613616",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>search_albums({'query': 'Underground', 'page_limit': 20}): []</tool_call_result>\nAlbums with 'Underground': []\n<tool_call_result>show_album({'album_id': 1}): {'album_id': 1, 'title': 'Echo Chamber Chronicles', 'genre': 'EDM', 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}], 'rating': 3.2, 'like_count': 34, 'review_count': 12, 'release_date': '2022-10-29T01:54:53', 'shareable_link': 'https://spotify.com/albums/1', 'songs': [{'id': 1, 'title': 'Painting Shadows on the Wall', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 217, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 2, 'title': 'Lost in the Mists of Time', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 224, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 3, 'title': 'The Fragrance of Fading Roses', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 270, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 4, 'title': 'The Puzzle of My Heart', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 181, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 5, 'title': 'Chasing the Ghosts of Yesterday', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 255, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 6, 'title': 'Reflections in a Pool of Regret', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 271, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}, {'id': 7, 'title': 'Memories Stitched in Time', 'album_id': 1, 'album_title': 'Echo Chamber Chronicles', 'duration': 279, 'artists': [{'id': 3, 'name': 'Jasper Skye'}, {'id': 26, 'name': 'Isabella Cruz'}, {'id': 6, 'name': 'Seraphina Dawn'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 2}): {'album_id': 2, 'title': 'Celestial Harmonies', 'genre': 'R&B', 'artists': [{'id': 32, 'name': 'Lucas Grey'}], 'rating': 3.6, 'like_count': 44, 'review_count': 17, 'release_date': '2022-05-21T21:55:36', 'shareable_link': 'https://spotify.com/albums/2', 'songs': [{'id': 8, 'title': 'Shadows of the Past', 'album_id': 2, 'album_title': 'Celestial Harmonies', 'duration': 271, 'artists': [{'id': 32, 'name': 'Lucas Grey'}]}, {'id': 9, 'title': 'When Fate Becomes a Foe', 'album_id': 2, 'album_title': 'Celestial Harmonies', 'duration': 196, 'artists': [{'id': 32, 'name': 'Lucas Grey'}]}, {'id': 10, 'title': 'The Curse of Loving You', 'album_id': 2, 'album_title': 'Celestial Harmonies', 'duration': 211, 'artists': [{'id': 32, 'name': 'Lucas Grey'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 3}): {'album_id': 3, 'title': 'Nocturnal Melodies', 'genre': 'R&B', 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}], 'rating': 3.5, 'like_count': 34, 'review_count': 24, 'release_date': '2022-11-08T06:55:52', 'shareable_link': 'https://spotify.com/albums/3', 'songs': [{'id': 11, 'title': \"Lost in a Moment's Grace\", 'album_id': 3, 'album_title': 'Nocturnal Melodies', 'duration': 196, 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}]}, {'id': 12, 'title': 'Haunted Memories', 'album_id': 3, 'album_title': 'Nocturnal Melodies', 'duration': 295, 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}]}, {'id': 13, 'title': 'Beneath the Veil of Illusion', 'album_id': 3, 'album_title': 'Nocturnal Melodies', 'duration': 220, 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}]}, {'id': 14, 'title': 'Memories Etched in Melancholy', 'album_id': 3, 'album_title': 'Nocturnal Melodies', 'duration': 196, 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}]}, {'id': 15, 'title': 'In the Depths of Despair', 'album_id': 3, 'album_title': 'Nocturnal Melodies', 'duration': 210, 'artists': [{'id': 16, 'name': 'Apollo Serenade'}, {'id': 2, 'name': 'Phoenix Rivers'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 4}): {'album_id': 4, 'title': 'Neon Echoes', 'genre': 'indie', 'artists': [{'id': 36, 'name': 'Noah Bennett'}], 'rating': 3.4, 'like_count': 33, 'review_count': 20, 'release_date': '2021-03-23T13:53:26', 'shareable_link': 'https://spotify.com/albums/4', 'songs': [{'id': 16, 'title': 'Yearning for a Glimpse of Heaven', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 207, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 17, 'title': 'Dancing Through the Veil of Dreams', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 238, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 18, 'title': 'Secrets We Dare Not Speak', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 188, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 19, 'title': 'Forged in Fire', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 228, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 20, 'title': 'Between the Depths and Heights', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 183, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 21, 'title': 'Lost in the Embrace of Night', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 282, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}, {'id': 22, 'title': 'Echoes from the Abyss', 'album_id': 4, 'album_title': 'Neon Echoes', 'duration': 192, 'artists': [{'id': 36, 'name': 'Noah Bennett'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 5}): {'album_id': 5, 'title': 'Velvet Shadows', 'genre': 'R&B', 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}], 'rating': 3.5, 'like_count': 38, 'review_count': 22, 'release_date': '2022-07-15T17:46:36', 'shareable_link': 'https://spotify.com/albums/5', 'songs': [{'id': 23, 'title': \"Solitude's Melancholy\", 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 287, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}, {'id': 24, 'title': 'The Unseen Scars of Love', 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 281, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}, {'id': 25, 'title': 'A Symphony of Broken Hearts', 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 260, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}, {'id': 26, 'title': 'In the Light of Dying Stars', 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 206, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}, {'id': 27, 'title': 'When Angels Weep for Us', 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 230, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}, {'id': 28, 'title': 'Invisible Lines', 'album_id': 5, 'album_title': 'Velvet Shadows', 'duration': 199, 'artists': [{'id': 32, 'name': 'Lucas Grey'}, {'id': 25, 'name': 'Velvet Echo'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 6}): {'album_id': 6, 'title': 'Ethereal Rhapsody', 'genre': 'indie', 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}], 'rating': 3.9, 'like_count': 37, 'review_count': 18, 'release_date': '2021-04-02T04:32:45', 'shareable_link': 'https://spotify.com/albums/6', 'songs': [{'id': 29, 'title': 'Violet Rain', 'album_id': 6, 'album_title': 'Ethereal Rhapsody', 'duration': 294, 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}]}, {'id': 30, 'title': 'Eternal Flame', 'album_id': 6, 'album_title': 'Ethereal Rhapsody', 'duration': 258, 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}]}, {'id': 31, 'title': 'Waves of Yesterday', 'album_id': 6, 'album_title': 'Ethereal Rhapsody', 'duration': 229, 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}]}, {'id': 32, 'title': 'Wading Through Rivers of Tears', 'album_id': 6, 'album_title': 'Ethereal Rhapsody', 'duration': 234, 'artists': [{'id': 36, 'name': 'Noah Bennett'}, {'id': 19, 'name': 'Ethan Wallace'}, {'id': 35, 'name': 'Nova Harmony'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 7}): {'album_id': 7, 'title': 'Vibrant Visions', 'genre': 'hip-hop', 'artists': [{'id': 11, 'name': 'Eliana Harper'}], 'rating': 3.4, 'like_count': 44, 'review_count': 20, 'release_date': '2021-02-05T04:10:20', 'shareable_link': 'https://spotify.com/albums/7', 'songs': [{'id': 33, 'title': 'Unveiled', 'album_id': 7, 'album_title': 'Vibrant Visions', 'duration': 238, 'artists': [{'id': 11, 'name': 'Eliana Harper'}]}, {'id': 34, 'title': 'Under the Gaze of a Watchful Moon', 'album_id': 7, 'album_title': 'Vibrant Visions', 'duration': 196, 'artists': [{'id': 11, 'name': 'Eliana Harper'}]}, {'id': 35, 'title': 'Dancing in the Rain of Tears', 'album_id': 7, 'album_title': 'Vibrant Visions', 'duration': 244, 'artists': [{'id': 11, 'name': 'Eliana Harper'}]}, {'id': 36, 'title': 'A Whisper in the Midnight Air', 'album_id': 7, 'album_title': 'Vibrant Visions', 'duration': 234, 'artists': [{'id': 11, 'name': 'Eliana Harper'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 8}): {'album_id': 8, 'title': 'Velvet Underground', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.6, 'like_count': 38, 'review_count': 17, 'release_date': '2021-06-10T10:41:47', 'shareable_link': 'https://spotify.com/albums/8', 'songs': [{'id': 37, 'title': 'Endless Roads', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 268, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 38, 'title': \"Destiny's Game\", 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 256, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 39, 'title': 'A Pathway to Nowhere', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 207, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 40, 'title': 'Burning Like a Distant Star', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 277, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 41, 'title': 'Gone Astray', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 281, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 42, 'title': 'Unspoken Words', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 199, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 43, 'title': 'Whispers of Destiny', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 298, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 9}): {'album_id': 9, 'title': 'Mystical Crescendo', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.4, 'like_count': 36, 'review_count': 12, 'release_date': '2022-09-27T00:38:12', 'shareable_link': 'https://spotify.com/albums/9', 'songs': [{'id': 44, 'title': 'The Illusion of Eternal Spring', 'album_id': 9, 'album_title': 'Mystical Crescendo', 'duration': 198, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 45, 'title': 'Eclipsed', 'album_id': 9, 'album_title': 'Mystical Crescendo', 'duration': 267, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 46, 'title': 'Symphony of the Twilight Forest', 'album_id': 9, 'album_title': 'Mystical Crescendo', 'duration': 227, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 10}): {'album_id': 10, 'title': 'Dreamscape Delights', 'genre': 'jazz', 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'rating': 3.0, 'like_count': 30, 'review_count': 10, 'release_date': '2022-11-11T09:54:16', 'shareable_link': 'https://spotify.com/albums/10', 'songs': [{'id': 47, 'title': \"Time's Hold\", 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 269, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 48, 'title': 'Cherry Blossom Tears', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 286, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 49, 'title': 'Whispers of the Enchanted Forest', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 246, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 50, 'title': 'Lonely Skies', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 284, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 51, 'title': 'The Silence Between Us', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 272, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 52, 'title': 'Bleeding Sun', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 225, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}, {'id': 53, 'title': 'Unearthed Secrets', 'album_id': 10, 'album_title': 'Dreamscape Delights', 'duration': 231, 'artists': [{'id': 8, 'name': 'Aria Sterling'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 11}): {'album_id': 11, 'title': 'Synaptic Serenity', 'genre': 'EDM', 'artists': [{'id': 5, 'name': 'Ava Morgan'}], 'rating': 3.9, 'like_count': 46, 'review_count': 18, 'release_date': '2022-12-11T06:22:44', 'shareable_link': 'https://spotify.com/albums/11', 'songs': [{'id': 54, 'title': 'Heartstrings Symphony', 'album_id': 11, 'album_title': 'Synaptic Serenity', 'duration': 232, 'artists': [{'id': 5, 'name': 'Ava Morgan'}]}, {'id': 55, 'title': 'Tangled Lies', 'album_id': 11, 'album_title': 'Synaptic Serenity', 'duration': 186, 'artists': [{'id': 5, 'name': 'Ava Morgan'}]}, {'id': 56, 'title': 'Distant Love', 'album_id': 11, 'album_title': 'Synaptic Serenity', 'duration': 202, 'artists': [{'id': 5, 'name': 'Ava Morgan'}]}, {'id': 57, 'title': 'Silver Lining', 'album_id': 11, 'album_title': 'Synaptic Serenity', 'duration': 287, 'artists': [{'id': 5, 'name': 'Ava Morgan'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 12}): {'album_id': 12, 'title': 'Astral Journey', 'genre': 'rock', 'artists': [{'id': 9, 'name': 'Zoey James'}], 'rating': 3.7, 'like_count': 43, 'review_count': 16, 'release_date': '2021-10-02T22:00:08', 'shareable_link': 'https://spotify.com/albums/12', 'songs': [{'id': 58, 'title': 'Cursed Love', 'album_id': 12, 'album_title': 'Astral Journey', 'duration': 214, 'artists': [{'id': 9, 'name': 'Zoey James'}]}, {'id': 59, 'title': \"Love's Decline\", 'album_id': 12, 'album_title': 'Astral Journey', 'duration': 212, 'artists': [{'id': 9, 'name': 'Zoey James'}]}, {'id': 60, 'title': 'The Haunting Echo of Goodbye', 'album_id': 12, 'album_title': 'Astral Journey', 'duration': 224, 'artists': [{'id': 9, 'name': 'Zoey James'}]}, {'id': 61, 'title': 'Ocean Eyes', 'album_id': 12, 'album_title': 'Astral Journey', 'duration': 271, 'artists': [{'id': 9, 'name': 'Zoey James'}]}, {'id': 62, 'title': 'Crimson Sunset Sonata', 'album_id': 12, 'album_title': 'Astral Journey', 'duration': 255, 'artists': [{'id': 9, 'name': 'Zoey James'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 13}): {'album_id': 13, 'title': 'Starlight Serenades', 'genre': 'EDM', 'artists': [{'id': 31, 'name': 'Hazel Winter'}, {'id': 5, 'name': 'Ava Morgan'}], 'rating': 3.3, 'like_count': 39, 'review_count': 17, 'release_date': '2021-03-02T14:08:32', 'shareable_link': 'https://spotify.com/albums/13', 'songs': [{'id': 63, 'title': 'Journey Through the Unknown', 'album_id': 13, 'album_title': 'Starlight Serenades', 'duration': 290, 'artists': [{'id': 31, 'name': 'Hazel Winter'}, {'id': 5, 'name': 'Ava Morgan'}]}, {'id': 64, 'title': 'Caught in a Web of Lies', 'album_id': 13, 'album_title': 'Starlight Serenades', 'duration': 280, 'artists': [{'id': 31, 'name': 'Hazel Winter'}, {'id': 5, 'name': 'Ava Morgan'}]}, {'id': 65, 'title': 'Eternal Solitude', 'album_id': 13, 'album_title': 'Starlight Serenades', 'duration': 206, 'artists': [{'id': 31, 'name': 'Hazel Winter'}, {'id': 5, 'name': 'Ava Morgan'}]}, {'id': 66, 'title': 'Phantom Pain', 'album_id': 13, 'album_title': 'Starlight Serenades', 'duration': 223, 'artists': [{'id': 31, 'name': 'Hazel Winter'}, {'id': 5, 'name': 'Ava Morgan'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 14}): {'album_id': 14, 'title': 'Midnight Serenade', 'genre': 'rock', 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}], 'rating': 3.4, 'like_count': 44, 'review_count': 14, 'release_date': '2022-02-21T17:34:33', 'shareable_link': 'https://spotify.com/albums/14', 'songs': [{'id': 67, 'title': 'The Echoes of a Silent Heart', 'album_id': 14, 'album_title': 'Midnight Serenade', 'duration': 240, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}, {'id': 68, 'title': 'Lost in the Wilderness of Love', 'album_id': 14, 'album_title': 'Midnight Serenade', 'duration': 280, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}, {'id': 69, 'title': 'Whispers of a Forgotten Love', 'album_id': 14, 'album_title': 'Midnight Serenade', 'duration': 285, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 15}): {'album_id': 15, 'title': 'Whispers in the Wind', 'genre': 'pop', 'artists': [{'id': 29, 'name': 'Lucas Diaz'}, {'id': 7, 'name': 'Orion Steele'}], 'rating': 3.8, 'like_count': 34, 'review_count': 17, 'release_date': '2022-08-17T08:43:21', 'shareable_link': 'https://spotify.com/albums/15', 'songs': [{'id': 70, 'title': 'Serenade of the Forgotten Stars', 'album_id': 15, 'album_title': 'Whispers in the Wind', 'duration': 265, 'artists': [{'id': 29, 'name': 'Lucas Diaz'}, {'id': 7, 'name': 'Orion Steele'}]}, {'id': 71, 'title': 'Eternal Fade', 'album_id': 15, 'album_title': 'Whispers in the Wind', 'duration': 267, 'artists': [{'id': 29, 'name': 'Lucas Diaz'}, {'id': 7, 'name': 'Orion Steele'}]}, {'id': 72, 'title': \"Wandering Through Time's Embrace\", 'album_id': 15, 'album_title': 'Whispers in the Wind', 'duration': 186, 'artists': [{'id': 29, 'name': 'Lucas Diaz'}, {'id': 7, 'name': 'Orion Steele'}]}, {'id': 73, 'title': 'When Silence Becomes Deafening', 'album_id': 15, 'album_title': 'Whispers in the Wind', 'duration': 237, 'artists': [{'id': 29, 'name': 'Lucas Diaz'}, {'id': 7, 'name': 'Orion Steele'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 16}): {'album_id': 16, 'title': 'Electric Dreamscape', 'genre': 'rock', 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}], 'rating': 3.8, 'like_count': 32, 'review_count': 16, 'release_date': '2022-08-02T08:03:50', 'shareable_link': 'https://spotify.com/albums/16', 'songs': [{'id': 74, 'title': 'On the Border of Reality', 'album_id': 16, 'album_title': 'Electric Dreamscape', 'duration': 296, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}, {'id': 75, 'title': 'Walking Through the Valley of Shadows', 'album_id': 16, 'album_title': 'Electric Dreamscape', 'duration': 195, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}, {'id': 76, 'title': 'Whispers of the Heart', 'album_id': 16, 'album_title': 'Electric Dreamscape', 'duration': 270, 'artists': [{'id': 34, 'name': 'Lily Moon'}, {'id': 9, 'name': 'Zoey James'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 17}): {'album_id': 17, 'title': 'Enchanted Melodies', 'genre': 'classical', 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}], 'rating': 3.6, 'like_count': 40, 'review_count': 17, 'release_date': '2020-10-15T13:57:09', 'shareable_link': 'https://spotify.com/albums/17', 'songs': [{'id': 77, 'title': 'Whispers of the Soul', 'album_id': 17, 'album_title': 'Enchanted Melodies', 'duration': 270, 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}]}, {'id': 78, 'title': 'A Love That Never Was', 'album_id': 17, 'album_title': 'Enchanted Melodies', 'duration': 237, 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}]}, {'id': 79, 'title': 'Fleeting Touch', 'album_id': 17, 'album_title': 'Enchanted Melodies', 'duration': 222, 'artists': [{'id': 12, 'name': 'Mia Sullivan'}, {'id': 27, 'name': 'Carter Knight'}]}]}</tool_call_result>\n<tool_call_result>show_album({'album_id': 18}): {'album_id': 18, 'title': 'Echoes of Eternity', 'genre': 'classical', 'artists': [{'id': 33, 'name': 'Felix Blackwood'}], 'rating': 3.7, 'like_count': 37, 'review_count': 21, 'release_date': '2022-07-06T10:24:33', 'shareable_link': 'https://spotify.com/albums/18', 'songs': [{'id': 80, 'title': 'Wandering the Streets Alone', 'album_id': 18, 'album_title': 'Echoes of Eternity', 'duration': 189, 'artists': [{'id': 33, 'name': 'Felix Blackwood'}]}, {'id': 81, 'title': 'Echoes of the Whispering Wind', 'album_id': 18, 'album_title': 'Echoes of Eternity', 'duration': 217, 'artists': [{'id': 33, 'name': 'Felix Blackwood'}]}, {'id': 82, 'title': 'Lost in the Twilight of Hope', 'album_id': 18, 'album_title': 'Echoes of Eternity', 'duration': 193, 'artists': [{'id': 33, 'name': 'Felix Blackwood'}]}]}</tool_call_result>\n<tool_call_error>show_album({'album_id': 19}): {'content': [], 'metadata': {'message': 'The album with id 19 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 20}): {'content': [], 'metadata': {'message': 'The album with id 20 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 21}): {'content': [], 'metadata': {'message': 'The album with id 21 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 22}): {'content': [], 'metadata': {'message': 'The album with id 22 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 23}): {'content': [], 'metadata': {'message': 'The album with id 23 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 24}): {'content': [], 'metadata': {'message': 'The album with id 24 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 25}): {'content': [], 'metadata': {'message': 'The album with id 25 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 26}): {'content': [], 'metadata': {'message': 'The album with id 26 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 27}): {'content': [], 'metadata': {'message': 'The album with id 27 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 28}): {'content': [], 'metadata': {'message': 'The album with id 28 does not exist.'}, 'isError': True}</tool_call_error>\n<tool_call_error>show_album({'album_id': 29}): {'content': [], 'metadata': {'message': 'The album with id 29 does not exist.'}, 'isError': True}</tool_call_error>\n"
+        }
+    ]
+}
+============= STEP: 3 ===========
+Friday(thinking): I found the "Velvet Underground" album! It's album_id=8, with songs:
+- ID 37: "Endless Roads"
+- ID 38: "Destiny's Game"
+- ID 39: "A Pathway to Nowhere"
+- ID 40: "Burning Like a Distant Star"
+- ID 41: "Gone Astray"
+- ID 42: "Unspoken Words"
+- ID 43: "Whispers of Destiny"
+
+Now I need to find the most listened to song (highest play_count) from this album. I need to get details for each song to find their play_count.
+{
+    "type": "tool_use",
+    "id": "call_a62a501f306d4949b4e3e593",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Get play counts for all songs in the Velvet Underground album (ID 8)\nsong_ids = [37, 38, 39, 40, 41, 42, 43]\nsongs_data = []\nfor sid in song_ids:\n    song = call_tool('show_song', song_id=sid)\n    songs_data.append(song)\n    print(f\"Song ID {sid}: '{song['title']}' - play_count={song['play_count']}, rating={song['rating']}, like_count={song['like_count']}\")\n\n# Find the most listened to song\nmost_played = max(songs_data, key=lambda s: s['play_count'])\nprint(f\"\\nMost listened to: Song ID {most_played['song_id']} '{most_played['title']}' with {most_played['play_count']} plays\")\n"
+    },
+    "raw_input": "{\"code\": \"# Get play counts for all songs in the Velvet Underground album (ID 8)\\nsong_ids = [37, 38, 39, 40, 41, 42, 43]\\nsongs_data = []\\nfor sid in song_ids:\\n    song = call_tool('show_song', song_id=sid)\\n    songs_data.append(song)\\n    print(f\\\"Song ID {sid}: '{song['title']}' - play_count={song['play_count']}, rating={song['rating']}, like_count={song['like_count']}\\\")\\n\\n# Find the most listened to song\\nmost_played = max(songs_data, key=lambda s: s['play_count'])\\nprint(f\\\"\\\\nMost listened to: Song ID {most_played['song_id']} '{most_played['title']}' with {most_played['play_count']} plays\\\")\\n\"}"
+}
+
+==TOOL SERVER: show_song, arguments={'song_id': 37}==
+==TOOL SERVER: show_song, arguments={'song_id': 38}==
+==TOOL SERVER: show_song, arguments={'song_id': 39}==
+==TOOL SERVER: show_song, arguments={'song_id': 40}==
+==TOOL SERVER: show_song, arguments={'song_id': 41}==
+==TOOL SERVER: show_song, arguments={'song_id': 42}==
+==TOOL SERVER: show_song, arguments={'song_id': 43}==
+system: {
+    "type": "tool_result",
+    "id": "call_a62a501f306d4949b4e3e593",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_song({'song_id': 37}): {'song_id': 37, 'title': 'Endless Roads', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 268, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 379, 'rating': 3.0, 'like_count': 9, 'review_count': 1, 'shareable_link': 'https://spotify.com/songs/37'}</tool_call_result>\nSong ID 37: 'Endless Roads' - play_count=379, rating=3.0, like_count=9\n<tool_call_result>show_song({'song_id': 38}): {'song_id': 38, 'title': \"Destiny's Game\", 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 256, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 178, 'rating': 2.0, 'like_count': 6, 'review_count': 2, 'shareable_link': 'https://spotify.com/songs/38'}</tool_call_result>\nSong ID 38: 'Destiny's Game' - play_count=178, rating=2.0, like_count=6\n<tool_call_result>show_song({'song_id': 39}): {'song_id': 39, 'title': 'A Pathway to Nowhere', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 207, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 594, 'rating': 0.0, 'like_count': 14, 'review_count': 0, 'shareable_link': 'https://spotify.com/songs/39'}</tool_call_result>\nSong ID 39: 'A Pathway to Nowhere' - play_count=594, rating=0.0, like_count=14\n<tool_call_result>show_song({'song_id': 40}): {'song_id': 40, 'title': 'Burning Like a Distant Star', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 277, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 120, 'rating': 0.0, 'like_count': 10, 'review_count': 0, 'shareable_link': 'https://spotify.com/songs/40'}</tool_call_result>\nSong ID 40: 'Burning Like a Distant Star' - play_count=120, rating=0.0, like_count=10\n<tool_call_result>show_song({'song_id': 41}): {'song_id': 41, 'title': 'Gone Astray', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 281, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 629, 'rating': 0.0, 'like_count': 15, 'review_count': 0, 'shareable_link': 'https://spotify.com/songs/41'}</tool_call_result>\nSong ID 41: 'Gone Astray' - play_count=629, rating=0.0, like_count=15\n<tool_call_result>show_song({'song_id': 42}): {'song_id': 42, 'title': 'Unspoken Words', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 199, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 349, 'rating': 0.0, 'like_count': 11, 'review_count': 0, 'shareable_link': 'https://spotify.com/songs/42'}</tool_call_result>\nSong ID 42: 'Unspoken Words' - play_count=349, rating=0.0, like_count=11\n<tool_call_result>show_song({'song_id': 43}): {'song_id': 43, 'title': 'Whispers of Destiny', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 298, 'artists': [{'id': 8, 'name': 'Aria Sterling', 'genre': 'jazz', 'follower_count': 21}], 'release_date': '2021-06-10T10:41:47', 'genre': 'jazz', 'play_count': 433, 'rating': 2.5, 'like_count': 18, 'review_count': 2, 'shareable_link': 'https://spotify.com/songs/43'}</tool_call_result>\nSong ID 43: 'Whispers of Destiny' - play_count=433, rating=2.5, like_count=18\n\nMost listened to: Song ID 41 'Gone Astray' with 629 plays\n"
+        }
+    ]
+}
+============= STEP: 4 ===========
+Friday(thinking): The most listened to song from the Velvet Underground album is "Gone Astray" (song_id=41) with 629 plays. Now I need to play it.
+Friday: The most listened to song from the "Velvet Underground" album is **"Gone Astray"** (song ID 41) with 629 plays. Now let me play it.
+
+{
+    "type": "tool_use",
+    "id": "call_9ed96bffb1594a6b871d4c73",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Play the most listened to song: \"Gone Astray\" (song_id=41)\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\nresult = call_tool('play_music', access_token=access_token, song_id=41)\nprint(result)\n"
+    },
+    "raw_input": "{\"code\": \"# Play the most listened to song: \\\"Gone Astray\\\" (song_id=41)\\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\\nresult = call_tool('play_music', access_token=access_token, song_id=41)\\nprint(result)\\n\"}"
+}
+==TOOL SERVER: play_music, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'song_id': 41}==
+system: {
+    "type": "tool_result",
+    "id": "call_9ed96bffb1594a6b871d4c73",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_error>play_music({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8', 'song_id': 41}): {'content': [], 'metadata': {'message': 'Song (Gone Astray) is now playing.', 'song_id': 41}, 'isError': True}</tool_call_error>\n{'content': [], 'metadata': {'message': 'Song (Gone Astray) is now playing.', 'song_id': 41}, 'isError': True}\n"
+        }
+    ]
+}
+============= STEP: 5 ===========
+Friday(thinking): ...[-]
+{
+    "type": "tool_use",
+    "id": "call_3b6fdb72d45b4eeab6071205",
+    "name": "run_python_code",
+    "input": {
+        "code": "# Confirm playback\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\ncurrent = call_tool('show_current_song', access_token=access_token)\nprint(current)\n"
+    },
+    "raw_input": "{\"code\": \"# Confirm playback\\naccess_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'\\ncurrent = call_tool('show_current_song', access_token=access_token)\\nprint(current)\\n\"}"
+}
+==TOOL SERVER: show_current_song, arguments={'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'}==
+system: {
+    "type": "tool_result",
+    "id": "call_3b6fdb72d45b4eeab6071205",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>show_current_song({'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzcG90aWZ5K2plci5jYWxob3VuQGdtYWlsLmNvbSIsImV4cCI6MTY4NDQxMjA5OH0.TGGJ8h0f1dFfjbDBf5GwbPZpAEAn5m66mKRtYzlVRg8'}): {'song_id': 41, 'title': 'Gone Astray', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 281, 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'played_seconds': 0, 'is_playing': True, 'is_looping': False}</tool_call_result>\n{'song_id': 41, 'title': 'Gone Astray', 'album_id': 8, 'album_title': 'Velvet Underground', 'duration': 281, 'artists': [{'id': 8, 'name': 'Aria Sterling'}], 'played_seconds': 0, 'is_playing': True, 'is_looping': False}\n"
+        }
+    ]
+}
+============= STEP: 6 ===========
+Friday(thinking): The song "Gone Astray" (song_id 41) is now playing successfully. The task was to play the most listened to song from the Velvet Underground album, and I've accomplished that. The song has 629 plays and is currently playing (is_playing: True).
+
+I should now mark the task as complete.
+Friday: Perfect! The song **"Gone Astray"** from the Velvet Underground album is now playing. It was the most listened to song with 629 plays.
+
+{
+    "type": "tool_use",
+    "id": "call_0e6377ec2ebb4a448e8a1c01",
+    "name": "run_python_code",
+    "input": {
+        "code": "call_tool('complete_task')\n"
+    },
+    "raw_input": "{\"code\": \"call_tool('complete_task')\\n\"}"
+}
+==TOOL SERVER: complete_task, arguments={}==
+system: {
+    "type": "tool_result",
+    "id": "call_0e6377ec2ebb4a448e8a1c01",
+    "name": "run_python_code",
+    "output": [
+        {
+            "type": "text",
+            "text": "<tool_call_result>complete_task({}): {'complete_message': 'Execution successful.'}</tool_call_result>\nOut[1]: {'complete_message': 'Execution successful.'}\n"
+        }
+    ]
+}
+============= STEP: 7 ===========
+Friday: The task is complete. I played the most listened to song from the "Velvet Underground" album by Aria Sterling: **"Gone Astray"** (song ID 41, 629 plays).
+
+Task completed!
+[92m─────────────────────────────────────── [0mOverall Stats[92m ───────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m────────────────────────────────────────── [0mPasses[92m ───────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with
+private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching
+private_data.least_or_most_played_song_id.
+[92m─────────────────────────────────────────── [0mFails[92m ───────────────────────────────────────────[0m
+[3;35mNone[0m
+
+--- Evaluation Report ---
+[92m─────────────────────────────────────── [0mOverall Stats[92m ───────────────────────────────────────[0m
+Num Passed Tests : [1;36m6[0m
+Num Failed Tests : [1;36m0[0m
+Num Total  Tests : [1;36m6[0m
+[92m────────────────────────────────────────── [0mPasses[92m ───────────────────────────────────────────[0m
+[1;32m>> Passed Requirement[0m
+assert answers match.
+[1;32m>> Passed Requirement[0m
+assert model changes match spotify.MusicPlayer.
+[1;32m>> Passed Requirement[0m
+obtain added, updated, removed spotify.MusicPlayer records using models.changed_records,
+and assert [1;36m1[0m has been updated, and [1;36m0[0m have been added or removed.
+[1;32m>> Passed Requirement[0m
+assert the updated music player is in playing state.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song is part of album/playlist with
+private_data.collection_id.
+[1;32m>> Passed Requirement[0m
+assert the updated music player's current_song has id matching
+private_data.least_or_most_played_song_id.
+[92m─────────────────────────────────────────── [0mFails[92m ───────────────────────────────────────────[0m
+[3;35mNone[0m
