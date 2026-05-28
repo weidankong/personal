@@ -265,7 +265,8 @@ In case of tool_call_error, read the failed API's schema AGAIN.
 """
 
 async def run_one_case(task_id):
-    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs")
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", "codeact")
+    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"{task_id}.txt")
 
     # Redirect stdout to capture all print output
@@ -462,7 +463,7 @@ async def main():
     cases = read_cases()
     # await run_one_case('396c5a2_1')
     for case in cases:
-        if case.endswith("_1") and not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", f"{case}.txt")):
+        if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "outputs", "codeact", f"{case}.txt")):
             await run_one_case(task_id=case)
 
 def read_cases():
