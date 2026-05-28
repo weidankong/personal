@@ -442,7 +442,7 @@ async def run_one_case(task_id):
         )
         msg.content += f"\nMy name is: {sup['first_name']} {sup['last_name']}. My personal email is {sup['email']} and phone number is {sup['phone_number']}."
 
-        for _ in range(3):
+        for _ in range(2):
             msg = await agent(msg)
             if world.task_completed():
                 print("\nTask completed!")
